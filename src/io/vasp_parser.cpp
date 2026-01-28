@@ -72,4 +72,9 @@ VASPStructure parse_vasp(const std::string& filepath) {
 
     return vasp;
 }
+
+Eigen::MatrixXd frac_to_cart(const Eigen::Matrix3d& lattice, const Eigen::MatrixXd& fract_coords) {
+    return fract_coords * lattice;
+}
+
 }  // namespace defect_gnn::io
