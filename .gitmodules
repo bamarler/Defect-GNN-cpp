@@ -1,0 +1,3 @@
+[submodule ".reference_code/Configurational-Disorder"]
+	path = .reference_code/Configurational-Disorder
+	url = git@github.com:qmatyanlab/Configurational-Disorder.git
