@@ -1,0 +1,43 @@
+{
+    "recommendations": [
+        // C++ Language Support
+        "llvm-vs-code-extensions.vscode-clangd",  // clangd language server (IntelliSense, linting, formatting)
+
+        // Build System
+        "ms-vscode.cmake-tools",                   // CMake integration
+        "twxs.cmake",                              // CMake syntax highlighting
+
+        // Debugging
+        "ms-vscode.cpptools",                      // C++ debugger (GDB/LLDB) - keep IntelliSense disabled
+        "vadimcn.vscode-lldb",                     // LLDB debugger (alternative, better for clang)
+
+        // Code Quality
+        "xaver.clang-format",                      // Standalone clang-format (backup)
+        "notskm.clang-tidy",                       // clang-tidy integration
+
+        // Git
+        "eamodio.gitlens",                         // Git history and blame
+        "mhutchie.git-graph",                      // Visual git graph
+
+        // General Productivity
+        "usernamehw.errorlens",                    // Inline error/warning display
+        "streetsidesoftware.code-spell-checker",  // Spell checking for comments
+        "christian-kohler.path-intellisense",     // Path autocomplete
+        "Gruntfuggly.todo-tree",                  // TODO/FIXME tracking
+
+        // File Types (from your roadmap)
+        "ms-python.python",                        // Python for scripts/
+        "redhat.vscode-yaml",                      // YAML for configs
+        "tamasfe.even-better-toml",               // TOML support
+
+        // Visualization (for WebAssembly phase)
+        "nickmillerdev.wasm-viewer",              // WASM file viewer
+
+        // Documentation
+        "cschlosser.doxdocgen"                    // Doxygen comment generator
+    ],
+    "unwantedRecommendations": [
+        // Disable Microsoft C++ IntelliSense since we use clangd
+        // (cpptools is still needed for debugging, but IntelliSense is disabled in settings)
+    ]
+}

@@ -1,0 +1,54 @@
+# clangd configuration
+# Docs: https://clangd.llvm.org/config
+
+# Apply to all files
+If:
+  PathMatch: .*
+
+CompileFlags:
+  # Add common compiler flags
+  Add:
+    - "-std=c++17"
+    - "-Wall"
+    - "-Wextra"
+    - "-Wpedantic"
+    - "-I/home/bamarler/Github/Defect-GNN-cpp/include"
+    - "-I/home/bamarler/Github/Defect-GNN-cpp/third_party"
+    - "-I/home/bamarler/Github/Defect-GNN-cpp/third_party/eigen"
+    - "-I/home/bamarler/Github/Defect-GNN-cpp/third_party/nlohmann_json"
+    - "-I/home/bamarler/Github/Defect-GNN-cpp/third_party/nanoflann"
+
+  # Remove flags that clangd doesn't understand
+  Remove:
+    - "-march=*"
+    - "-mtune=*"
+
+Diagnostics:
+  # Enable clang-tidy checks
+  ClangTidy:
+    Add:
+      - bugprone-*
+      - modernize-*
+      - performance-*
+      - readability-*
+    Remove:
+      - modernize-use-trailing-return-type
+      - readability-magic-numbers
+      - readability-identifier-length
+
+  # Suppress noisy diagnostics
+  Suppress:
+    - pp_file_not_found # Will be resolved once third_party is set up
+
+InlayHints:
+  # Show type hints for auto variables
+  Enabled: true
+  ParameterNames: true
+  DeducedTypes: true
+  Designators: true
+
+Hover:
+  ShowAKA: true
+
+Completion:
+  AllScopes: true
