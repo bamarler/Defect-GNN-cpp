@@ -8,7 +8,7 @@ project(defect_gnn
 # ============================================================================
 # Build Options
 # ============================================================================
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -75,6 +75,22 @@ else()
     message(STATUS "nanoflann not found. Download to third_party/nanoflann/")
 endif()
 
+# spdlog (header-only logging)
+if(EXISTS "${CMAKE_SOURCE_DIR}/third_party/spdlog/include/spdlog/spdlog.h")
+    set(SPDLOG_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third_party/spdlog/include")
+    message(STATUS "Using bundled spdlog")
+else()
+    message(STATUS "spdlog not found. Download to third_party/spdlog/")
+endif()
+
+# Ripser (persistent homology - we'll use it as a library)
+if(EXISTS "${CMAKE_SOURCE_DIR}/third_party/ripser/ripser.cpp")
+    set(RIPSER_DIR "${CMAKE_SOURCE_DIR}/third_party/ripser")
+    message(STATUS "Using bundled Ripser")
+else()
+    message(STATUS "Ripser not found. Clone to third_party/ripser/")
+endif()
+
 # ============================================================================
 # Include Directories
 # ============================================================================
@@ -93,6 +109,14 @@ endif()
 
 if(NANOFLANN_INCLUDE_DIR)
     include_directories(${NANOFLANN_INCLUDE_DIR})
+endif()
+
+if(SPDLOG_INCLUDE_DIR)
+    include_directories(${SPDLOG_INCLUDE_DIR})
+endif()
+
+if(RIPSER_DIR)
+    include_directories(${RIPSER_DIR})
 endif()
 
 # ============================================================================

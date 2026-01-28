@@ -3,3 +3,4 @@ Eigen
 nanoflann
 topo
 qmatyanlab
+CGCNN

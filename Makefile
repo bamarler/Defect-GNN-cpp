@@ -24,7 +24,7 @@ CHECK := $(GREEN)✓$(NC)
 CROSS := $(RED)✗$(NC)
 ARROW := $(CYAN)→$(NC)
 
-.PHONY: help check-deps deps init configure build clean rebuild format lint test wasm-init wasm-build
+.PHONY: help check-deps deps init configure build run clean rebuild format lint test wasm-init wasm-build
 
 #==============================================================================
 # Help
@@ -106,6 +106,12 @@ check-deps:
 	else \
 		printf "  $(CROSS) nanoflann:    not found (run: make deps)\n"; \
 	fi
+	@# spdlog
+	@if [ -f "$(THIRD_PARTY)/spdlog/include/spdlog/spdlog.h" ]; then \
+		printf "  $(CHECK) spdlog:       $(THIRD_PARTY)/spdlog/\n"; \
+	else \
+		printf "  $(CROSS) spdlog:       not found (run: make deps)\n"; \
+	fi
 	@# Ripser
 	@if [ -f "$(THIRD_PARTY)/ripser/ripser.cpp" ]; then \
 		printf "  $(CHECK) Ripser:       $(THIRD_PARTY)/ripser/\n"; \
@@ -153,6 +159,16 @@ deps:
 		printf "  $(CHECK) nanoflann installed\n"; \
 	else \
 		printf "  $(CHECK) nanoflann already installed\n"; \
+	fi
+	@# spdlog (header-only)
+	@if [ ! -f "$(THIRD_PARTY)/spdlog/include/spdlog/spdlog.h" ]; then \
+		printf "  $(ARROW) Downloading spdlog 1.14.1...\n"; \
+		mkdir -p $(THIRD_PARTY)/spdlog; \
+		curl -sL https://github.com/gabime/spdlog/archive/refs/tags/v1.14.1.tar.gz | \
+			tar xz -C $(THIRD_PARTY)/spdlog --strip-components=1; \
+		printf "  $(CHECK) spdlog installed\n"; \
+	else \
+		printf "  $(CHECK) spdlog already installed\n"; \
 	fi
 	@# Ripser (persistent homology)
 	@if [ ! -f "$(THIRD_PARTY)/ripser/ripser.cpp" ]; then \
@@ -206,6 +222,10 @@ build:
 	@printf "\n"
 	@printf "$(GREEN)Build complete!$(NC)\n"
 	@printf "\n"
+
+## run: Build and run the executable
+run: build
+	@./$(BUILD_DIR)/defect_gnn
 
 ## clean: Remove build artifacts
 clean:
