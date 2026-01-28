@@ -45,7 +45,7 @@ VASPStructure parse_vasp(const std::string& filepath) {
         vasp.counts.push_back(count);
     }
 
-    bool is_direct = lines[7][0] == 'd';
+    bool is_direct = lines[7][0] == 'd' || lines[7][0] == 'D';
 
     int total_atoms = std::reduce(vasp.counts.begin(), vasp.counts.end());
 
@@ -67,7 +67,7 @@ VASPStructure parse_vasp(const std::string& filepath) {
 
     if (!is_direct) {
         Eigen::Matrix3d inv_lattice = vasp.lattice.inverse();
-        vasp.frac_coords = vasp.frac_coords * inv_lattice.transpose();
+        vasp.frac_coords = vasp.frac_coords * inv_lattice;
     }
 
     return vasp;
