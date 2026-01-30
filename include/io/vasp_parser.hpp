@@ -17,6 +17,4 @@ struct VASPStructure {
 
 VASPStructure parse_vasp(const std::string& filepath);
 
-Eigen::MatrixXd frac_to_cart(const Eigen::Matrix3d& lattice, const Eigen::MatrixXd& fract_coords);
-
 }  // namespace defect_gnn::io

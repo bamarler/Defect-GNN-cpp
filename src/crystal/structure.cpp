@@ -10,7 +10,7 @@ Structure::Structure(const io::VASPStructure& vasp)
         Atom atom;
         atom.element = vasp.atom_types[i];
         atom.frac_position = vasp.frac_coords.row(i);
-        atom.position = io::frac_to_cart(lattice_, vasp.frac_coords.row(i));
+        atom.position = lattice_.transpose() * atom.frac_position;
         atoms_.push_back(atom);
     }
 }
@@ -34,7 +34,7 @@ Eigen::Vector3d Structure::displacement(size_t i, size_t j) const {
         delta_frac[k] -= std::round(delta_frac[k]);
     }
 
-    return io::frac_to_cart(lattice_, delta_frac.transpose()).transpose();
+    return lattice_.transpose() * delta_frac;
 }
 
 }  // namespace defect_gnn::crystal
