@@ -3,12 +3,15 @@ SHELL := /bin/bash
 
 # Directories
 BUILD_DIR := build
+BUILD_WASM_DIR := build-wasm
 INCLUDE_DIR := include
 SRC_DIR := src
 THIRD_PARTY := third_party
 TESTS_DIR := tests
+WEB_DIR := web
+WASM_OUTPUT_DIR := $(WEB_DIR)/public/wasm
 
-# Emscripten (for WebAssembly phase)
+# Emscripten
 EMSDK_ENV := $(HOME)/emsdk/emsdk_env.sh
 
 # Colors for output
@@ -24,7 +27,8 @@ CHECK := $(GREEN)✓$(NC)
 CROSS := $(RED)✗$(NC)
 ARROW := $(CYAN)→$(NC)
 
-.PHONY: help check-deps deps init configure build run clean rebuild format lint test wasm-init wasm-build
+.PHONY: help check-deps deps init configure build run clean rebuild format lint test \
+        wasm-init wasm-build wasm-clean web-init web-dev web-build web-clean all-clean
 
 #==============================================================================
 # Help
@@ -38,16 +42,34 @@ help:
 	@printf "$(CYAN)════════════════════════════════════════════════════════════════$(NC)\n"
 	@printf "\n"
 	@printf "$(YELLOW)Setup:$(NC)\n"
-	@grep -E '^## (check-deps|deps|init|configure):' $(MAKEFILE_LIST) | sed 's/## /  /' | column -t -s ':'
+	@printf "  check-deps    Verify all required tools are installed\n"
+	@printf "  deps          Download all third-party dependencies\n"
+	@printf "  init          Full project initialization (deps + configure)\n"
 	@printf "\n"
-	@printf "$(YELLOW)Build:$(NC)\n"
-	@grep -E '^## (build|clean|rebuild):' $(MAKEFILE_LIST) | sed 's/## /  /' | column -t -s ':'
+	@printf "$(YELLOW)Native Build:$(NC)\n"
+	@printf "  build         Compile the native executable\n"
+	@printf "  run           Build and run the executable\n"
+	@printf "  clean         Remove native build artifacts\n"
+	@printf "  rebuild       Clean and rebuild everything\n"
 	@printf "\n"
 	@printf "$(YELLOW)Code Quality:$(NC)\n"
-	@grep -E '^## (format|lint|test):' $(MAKEFILE_LIST) | sed 's/## /  /' | column -t -s ':'
+	@printf "  format        Format all source files with clang-format\n"
+	@printf "  lint          Run clang-tidy on all source files\n"
+	@printf "  test          Run all tests\n"
 	@printf "\n"
 	@printf "$(YELLOW)WebAssembly:$(NC)\n"
-	@grep -E '^## (wasm-):' $(MAKEFILE_LIST) | sed 's/## /  /' | column -t -s ':'
+	@printf "  wasm-init     Configure Emscripten build\n"
+	@printf "  wasm-build    Compile to WebAssembly\n"
+	@printf "  wasm-clean    Remove WASM build artifacts\n"
+	@printf "\n"
+	@printf "$(YELLOW)Frontend:$(NC)\n"
+	@printf "  web-init      Initialize frontend (bun install)\n"
+	@printf "  web-dev       Start frontend dev server\n"
+	@printf "  web-build     Build frontend for production\n"
+	@printf "  web-clean     Remove frontend build artifacts\n"
+	@printf "\n"
+	@printf "$(YELLOW)Combined:$(NC)\n"
+	@printf "  all-clean     Remove all build artifacts\n"
 	@printf "\n"
 
 #==============================================================================
@@ -79,10 +101,16 @@ check-deps:
 	@command -v clang-tidy >/dev/null 2>&1 && \
 		printf "  $(CHECK) clang-tidy:   $$(clang-tidy --version | head -1)\n" || \
 		printf "  $(CROSS) clang-tidy:   not found (apt install clang-tidy)\n"
-	@# clangd
-	@command -v clangd >/dev/null 2>&1 && \
-		printf "  $(CHECK) clangd:       $$(clangd --version | head -1)\n" || \
-		printf "  $(CROSS) clangd:       not found (apt install clangd)\n"
+	@# Emscripten
+	@if [ -f "$(EMSDK_ENV)" ]; then \
+		printf "  $(CHECK) emscripten:   $(EMSDK_ENV)\n"; \
+	else \
+		printf "  $(CROSS) emscripten:   not found at $(EMSDK_ENV)\n"; \
+	fi
+	@# Bun
+	@command -v bun >/dev/null 2>&1 && \
+		printf "  $(CHECK) bun:          $$(bun --version)\n" || \
+		printf "  $(CROSS) bun:          not found (curl -fsSL https://bun.sh/install | bash)\n"
 	@printf "\n"
 	@printf "$(BLUE)Checking third-party libraries...$(NC)\n"
 	@printf "\n"
@@ -206,7 +234,7 @@ init: deps configure
 	@printf "\n"
 
 #==============================================================================
-# Build
+# Native Build
 #==============================================================================
 
 ## build: Compile the project
@@ -230,7 +258,7 @@ run: build
 ## clean: Remove build artifacts
 clean:
 	@printf "\n"
-	@printf "$(BLUE)Cleaning build artifacts...$(NC)\n"
+	@printf "$(BLUE)Cleaning native build artifacts...$(NC)\n"
 	@rm -rf $(BUILD_DIR)
 	@rm -f compile_commands.json
 	@printf "  $(CHECK) Build directory removed\n"
@@ -283,7 +311,7 @@ test:
 	@printf "\n"
 
 #==============================================================================
-# WebAssembly (Phase 6)
+# WebAssembly
 #==============================================================================
 
 ## wasm-init: Initialize Emscripten build
@@ -296,9 +324,10 @@ wasm-init:
 		printf "Install from: https://emscripten.org/docs/getting_started/downloads.html\n"; \
 		exit 1; \
 	fi
-	@mkdir -p $(BUILD_DIR)-wasm
+	@mkdir -p $(BUILD_WASM_DIR)
+	@mkdir -p $(WASM_OUTPUT_DIR)
 	@source $(EMSDK_ENV) && \
-		emcmake cmake -B $(BUILD_DIR)-wasm -G Ninja \
+		emcmake cmake -B $(BUILD_WASM_DIR) -G Ninja \
 			-DCMAKE_BUILD_TYPE=Release
 	@printf "\n"
 	@printf "$(GREEN)WASM build configured!$(NC)\n"
@@ -309,11 +338,81 @@ wasm-build:
 	@printf "\n"
 	@printf "$(BLUE)Building WebAssembly...$(NC)\n"
 	@printf "\n"
-	@if [ ! -d "$(BUILD_DIR)-wasm" ]; then \
+	@if [ ! -d "$(BUILD_WASM_DIR)" ]; then \
 		printf "$(RED)WASM build not configured. Run 'make wasm-init' first.$(NC)\n"; \
 		exit 1; \
 	fi
-	@source $(EMSDK_ENV) && cmake --build $(BUILD_DIR)-wasm
+	@source $(EMSDK_ENV) && cmake --build $(BUILD_WASM_DIR)
+	@printf "\n"
+	@printf "$(BLUE)Copying WASM files to web/public/wasm/...$(NC)\n"
+	@mkdir -p $(WASM_OUTPUT_DIR)
+	@cp $(BUILD_WASM_DIR)/defect_gnn_viz.js $(WASM_OUTPUT_DIR)/
+	@cp $(BUILD_WASM_DIR)/defect_gnn_viz.wasm $(WASM_OUTPUT_DIR)/
+	@printf "  $(CHECK) defect_gnn_viz.js\n"
+	@printf "  $(CHECK) defect_gnn_viz.wasm\n"
 	@printf "\n"
 	@printf "$(GREEN)WASM build complete!$(NC)\n"
+	@printf "\n"
+
+## wasm-clean: Remove WASM build artifacts
+wasm-clean:
+	@printf "\n"
+	@printf "$(BLUE)Cleaning WASM build artifacts...$(NC)\n"
+	@rm -rf $(BUILD_WASM_DIR)
+	@rm -f $(WASM_OUTPUT_DIR)/defect_gnn_viz.*
+	@printf "  $(CHECK) WASM build directory removed\n"
+	@printf "\n"
+
+#==============================================================================
+# Frontend
+#==============================================================================
+
+## web-init: Initialize frontend (bun install)
+web-init:
+	@printf "\n"
+	@printf "$(BLUE)Initializing frontend...$(NC)\n"
+	@printf "\n"
+	@if [ ! -d "$(WEB_DIR)" ]; then \
+		printf "$(RED)Web directory not found. Create web/ first.$(NC)\n"; \
+		exit 1; \
+	fi
+	@cd $(WEB_DIR) && bun install
+	@printf "\n"
+	@printf "$(GREEN)Frontend initialized!$(NC)\n"
+	@printf "\n"
+
+## web-dev: Start frontend dev server
+web-dev:
+	@printf "\n"
+	@printf "$(BLUE)Starting frontend dev server...$(NC)\n"
+	@printf "\n"
+	@cd $(WEB_DIR) && bun run dev
+
+## web-build: Build frontend for production
+web-build: wasm-build
+	@printf "\n"
+	@printf "$(BLUE)Building frontend for production...$(NC)\n"
+	@printf "\n"
+	@cd $(WEB_DIR) && bun run build
+	@printf "\n"
+	@printf "$(GREEN)Frontend build complete!$(NC)\n"
+	@printf "\n"
+
+## web-clean: Remove frontend build artifacts
+web-clean:
+	@printf "\n"
+	@printf "$(BLUE)Cleaning frontend build artifacts...$(NC)\n"
+	@rm -rf $(WEB_DIR)/.next
+	@rm -rf $(WEB_DIR)/out
+	@rm -rf $(WEB_DIR)/node_modules
+	@printf "  $(CHECK) Frontend build artifacts removed\n"
+	@printf "\n"
+
+#==============================================================================
+# Combined
+#==============================================================================
+
+## all-clean: Remove all build artifacts
+all-clean: clean wasm-clean web-clean
+	@printf "$(GREEN)All build artifacts removed!$(NC)\n"
 	@printf "\n"

@@ -123,60 +123,104 @@ endif()
 # Source Files
 # ============================================================================
 
-# Collect all source files (will be populated as you add them)
-file(GLOB_RECURSE SOURCES
-    "src/*.cpp"
-)
-
 # Header files (for IDE integration)
 file(GLOB_RECURSE HEADERS
     "include/*.hpp"
 )
 
 # ============================================================================
-# Main Executable
+# Emscripten (WASM) Build
 # ============================================================================
-if(SOURCES)
-    add_executable(defect_gnn ${SOURCES} ${HEADERS})
-    target_include_directories(defect_gnn PRIVATE
+if(EMSCRIPTEN)
+    message(STATUS "")
+    message(STATUS "=== Building for WebAssembly ===")
+
+    # Visualization-only sources (no training, no Ripser)
+    set(WASM_SOURCES
+        src/io/vasp_parser.cpp
+        src/crystal/structure.cpp
+        src/graph/neighbor_list.cpp
+        src/graph/edge_features.cpp
+        src/viz/wasm_bindings.cpp
+    )
+
+    add_executable(defect_gnn_viz ${WASM_SOURCES} ${HEADERS})
+
+    target_include_directories(defect_gnn_viz PRIVATE
         ${CMAKE_SOURCE_DIR}/include
     )
-else()
-    message(STATUS "No source files found in src/ yet. Skipping executable target.")
-endif()
 
-# ============================================================================
-# Tests
-# ============================================================================
-option(BUILD_TESTS "Build unit tests" ON)
-
-if(BUILD_TESTS)
-    enable_testing()
-
-    # Test files
-    file(GLOB TEST_SOURCES "tests/*.cpp")
-
-    if(TEST_SOURCES)
-        foreach(TEST_FILE ${TEST_SOURCES})
-            get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
-            add_executable(${TEST_NAME} ${TEST_FILE})
-            target_include_directories(${TEST_NAME} PRIVATE
-                ${CMAKE_SOURCE_DIR}/include
-            )
-            add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
-        endforeach()
-    endif()
-endif()
-
-# ============================================================================
-# Symlink compile_commands.json to project root for clangd
-# ============================================================================
-if(CMAKE_EXPORT_COMPILE_COMMANDS)
-    execute_process(
-        COMMAND ${CMAKE_COMMAND} -E create_symlink
-            ${CMAKE_BINARY_DIR}/compile_commands.json
-            ${CMAKE_SOURCE_DIR}/compile_commands.json
+    # Emscripten-specific linker flags
+    set_target_properties(defect_gnn_viz PROPERTIES
+        SUFFIX ".js"
+        LINK_FLAGS "\
+            -sMODULARIZE=1 \
+            -sEXPORT_NAME='createDefectGNNModule' \
+            -sALLOW_MEMORY_GROWTH=1 \
+            -sENVIRONMENT='web' \
+            -sNO_EXIT_RUNTIME=1 \
+            -sINVOKE_RUN=0 \
+            --bind \
+            -O3 \
+            -flto \
+        "
     )
+
+    message(STATUS "WASM target: defect_gnn_viz")
+    message(STATUS "Output: defect_gnn_viz.js + defect_gnn_viz.wasm")
+
+# ============================================================================
+# Native Build
+# ============================================================================
+else()
+    # Collect all source files excluding WASM bindings
+    file(GLOB_RECURSE SOURCES
+        "src/*.cpp"
+    )
+    # Remove wasm_bindings.cpp from native build
+    list(FILTER SOURCES EXCLUDE REGEX ".*wasm_bindings\\.cpp$")
+
+    if(SOURCES)
+        add_executable(defect_gnn ${SOURCES} ${HEADERS})
+        target_include_directories(defect_gnn PRIVATE
+            ${CMAKE_SOURCE_DIR}/include
+        )
+    else()
+        message(STATUS "No source files found in src/ yet. Skipping executable target.")
+    endif()
+
+    # ========================================================================
+    # Tests
+    # ========================================================================
+    option(BUILD_TESTS "Build unit tests" ON)
+
+    if(BUILD_TESTS)
+        enable_testing()
+
+        file(GLOB TEST_SOURCES "tests/*.cpp")
+
+        if(TEST_SOURCES)
+            foreach(TEST_FILE ${TEST_SOURCES})
+                get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
+                add_executable(${TEST_NAME} ${TEST_FILE})
+                target_include_directories(${TEST_NAME} PRIVATE
+                    ${CMAKE_SOURCE_DIR}/include
+                )
+                add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+            endforeach()
+        endif()
+    endif()
+
+    # ========================================================================
+    # Symlink compile_commands.json to project root for clangd
+    # ========================================================================
+    if(CMAKE_EXPORT_COMPILE_COMMANDS)
+        execute_process(
+            COMMAND ${CMAKE_COMMAND} -E create_symlink
+                ${CMAKE_BINARY_DIR}/compile_commands.json
+                ${CMAKE_SOURCE_DIR}/compile_commands.json
+        )
+    endif()
 endif()
 
 # ============================================================================
@@ -187,4 +231,9 @@ message(STATUS "=== Defect-GNN Configuration ===")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+if(EMSCRIPTEN)
+    message(STATUS "Target: WebAssembly")
+else()
+    message(STATUS "Target: Native")
+endif()
 message(STATUS "")

@@ -3,7 +3,9 @@ bugprone
 CGCNN
 cuttoff
 Eigen
+Emscripten
 kdtree
 nanoflann
 qmatyanlab
 topo
+vasp

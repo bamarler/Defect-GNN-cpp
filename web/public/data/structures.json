@@ -1,0 +1,31 @@
+{
+  "materials": [
+    {
+      "id": "1",
+      "name": "Ag₃AsO₄",
+      "pristine": "1.vasp",
+      "defects": [
+        "1_1.vasp",
+        "1_2.vasp"
+      ]
+    },
+    {
+      "id": "741",
+      "name": "K₂CO₃",
+      "pristine": "741.vasp",
+      "defects": [
+        "741_1.vasp",
+        "741_2.vasp"
+      ]
+    },
+    {
+      "id": "1046",
+      "name": "NaCoO₂",
+      "pristine": "1046.vasp",
+      "defects": [
+        "1046_1.vasp",
+        "1046_2.vasp"
+      ]
+    }
+  ]
+}
