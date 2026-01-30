@@ -5,6 +5,7 @@
 Recreate the paper "Leveraging Persistent Homology Features for Accurate Defect Formation Energy Predictions via Graph Neural Networks" (Fang & Yan, Chem. Mater. 2025) in C++, with eventual WebAssembly compilation for browser-based visualization.
 
 **Paper claims to reproduce:**
+
 - 55% MAE reduction with persistent homology features
 - Global max pooling outperforms mean pooling for defect tasks
 - Transformer architecture performs best (MAE: 0.72 eV)
@@ -14,6 +15,7 @@ Recreate the paper "Leveraging Persistent Homology Features for Accurate Defect 
 ## Phase 0: Setup & Data Acquisition
 
 ### Step 0.1: Fork Repository
+
 ```bash
 # Fork https://github.com/qmatyanlab/Defect_GNN
 # Clone your fork
@@ -26,12 +28,14 @@ tar -xzf raw.tar.gz
 ```
 
 **What you get:**
+
 - `data.csv` — Labels (pristine_idx, vacancy_idx, formation_energy)
 - `atomic_embedding_CGCNN.json` — 92-dim embeddings per element
 - `pristine_structures/` — 1112 VASP files
 - `defective_structures/` — 7753 VASP files
 
 ### Step 0.2: Also Clone Configurational-Disorder (Reference Code)
+
 ```bash
 git clone https://github.com/qmatyanlab/Configurational-Disorder.git
 ```
@@ -45,6 +49,7 @@ git clone https://github.com/qmatyanlab/Configurational-Disorder.git
 | `Disorder_GNN/utilities.py` | Graph construction |
 
 ### Step 0.3: Create Your C++ Project Structure
+
 ```
 defect-gnn-cpp/
 │
@@ -69,9 +74,7 @@ defect-gnn-cpp/
 │   │   └── json_parser.hpp
 │   │
 │   ├── crystal/
-│   │   ├── structure.hpp
-│   │   ├── lattice.hpp
-│   │   └── atom.hpp
+│   │   └── structure.hpp         # Contains Atom class + Structure class
 │   │
 │   ├── graph/
 │   │   ├── crystal_graph.hpp
@@ -79,23 +82,20 @@ defect-gnn-cpp/
 │   │   └── edge_features.hpp
 │   │
 │   ├── topology/
-│   │   ├── persistent_homology.hpp
+│   │   ├── ripser_wrapper.hpp    # C++ Ripser integration
 │   │   ├── betti_features.hpp
 │   │   └── pca.hpp
 │   │
 │   ├── nn/
-│   │   ├── tensor.hpp            # Or use Eigen
+│   │   ├── tensor.hpp            # Eigen aliases + activations
 │   │   ├── linear.hpp
-│   │   ├── activation.hpp
-│   │   ├── conv/
-│   │   │   ├── message_passing.hpp
-│   │   │   ├── cgconv.hpp
-│   │   │   ├── gatv2conv.hpp
-│   │   │   └── transformer_conv.hpp
-│   │   ├── pool/
-│   │   │   ├── global_max_pool.hpp
-│   │   │   └── global_mean_pool.hpp
-│   │   └── model.hpp
+│   │   ├── pool.hpp              # global_max_pool + global_mean_pool
+│   │   ├── model.hpp
+│   │   └── conv/
+│   │       ├── message_passing.hpp
+│   │       ├── cgconv.hpp
+│   │       ├── gatv2conv.hpp
+│   │       └── transformer_conv.hpp
 │   │
 │   ├── train/
 │   │   ├── dataset.hpp
@@ -114,8 +114,7 @@ defect-gnn-cpp/
 │   │   └── json_parser.cpp
 │   │
 │   ├── crystal/
-│   │   ├── structure.cpp
-│   │   └── lattice.cpp
+│   │   └── structure.cpp
 │   │
 │   ├── graph/
 │   │   ├── crystal_graph.cpp
@@ -123,20 +122,20 @@ defect-gnn-cpp/
 │   │   └── edge_features.cpp
 │   │
 │   ├── topology/
-│   │   ├── persistent_homology.cpp
+│   │   ├── ripser_wrapper.cpp    # Ripser integration impl
 │   │   ├── betti_features.cpp
 │   │   └── pca.cpp
 │   │
 │   ├── nn/
+│   │   ├── tensor.cpp            # Activations impl
 │   │   ├── linear.cpp
-│   │   ├── conv/
-│   │   │   ├── message_passing.cpp
-│   │   │   ├── cgconv.cpp
-│   │   │   ├── gatv2conv.cpp
-│   │   │   └── transformer_conv.cpp
-│   │   ├── pool/
-│   │   │   └── global_pool.cpp
-│   │   └── model.cpp
+│   │   ├── pool.cpp
+│   │   ├── model.cpp
+│   │   └── conv/
+│   │       ├── message_passing.cpp
+│   │       ├── cgconv.cpp
+│   │       ├── gatv2conv.cpp
+│   │       └── transformer_conv.cpp
 │   │
 │   ├── train/
 │   │   ├── dataset.cpp
@@ -154,14 +153,14 @@ defect-gnn-cpp/
 │   └── test_forward_pass.cpp
 │
 ├── scripts/
-│   ├── precompute_betti.py       # Use Python ripser initially
 │   └── validate_against_pytorch.py
 │
 └── third_party/
     ├── eigen/                    # Header-only
     ├── nlohmann_json/            # Header-only
     ├── nanoflann/                # Header-only (KD-tree)
-    └── ripser/                   # C++ persistent homology
+    ├── ripser/                   # C++ persistent homology
+    └── spdlog/                   # Header-only logging
 ```
 
 ---
@@ -173,6 +172,7 @@ defect-gnn-cpp/
 **Reference:** `Defect_GNN/Betti_number.py:15-46` (`get_prim_structure_info`)
 
 **File:** `include/io/vasp_parser.hpp`
+
 ```cpp
 namespace defect_gnn::io {
 
@@ -196,6 +196,7 @@ Eigen::MatrixXd frac_to_cart(const Eigen::Matrix3d& lattice,
 ```
 
 **VASP format reminder:**
+
 ```
 Line 1: Comment
 Line 2: Scale factor
@@ -209,6 +210,7 @@ Lines 9+: Coordinates
 ### 1.2 Crystal Structure
 
 **File:** `include/crystal/structure.hpp`
+
 ```cpp
 namespace defect_gnn::crystal {
 
@@ -222,15 +224,15 @@ public:
 class Structure {
 public:
     Structure(const io::VASPStructure& vasp);
-    
+
     const Eigen::Matrix3d& lattice() const;
     const std::vector<Atom>& atoms() const;
     size_t num_atoms() const;
-    
+
     // Get minimum image distance (periodic boundary conditions)
     double distance(size_t i, size_t j) const;
     Eigen::Vector3d displacement(size_t i, size_t j) const;
-    
+
 private:
     Eigen::Matrix3d lattice_;
     Eigen::Matrix3d inv_lattice_;  // For PBC
@@ -245,6 +247,7 @@ private:
 **Reference:** `Defect_GNN/utilities.py:34-71` (`structureToGraph`)
 
 **File:** `include/graph/neighbor_list.hpp`
+
 ```cpp
 namespace defect_gnn::graph {
 
@@ -260,14 +263,14 @@ public:
     NeighborList(const crystal::Structure& structure,
                  double r_cutoff = 10.0,
                  size_t max_neighbors = 20);
-    
+
     const std::vector<Neighbor>& neighbors(size_t atom_idx) const;
-    
+
 private:
     // Use nanoflann KD-tree for efficient neighbor search
     // Must handle periodic boundary conditions by replicating atoms
     void build_with_pbc(const crystal::Structure& structure);
-    
+
     std::vector<std::vector<Neighbor>> neighbor_lists_;
 };
 
@@ -279,6 +282,7 @@ private:
 **Reference:** `Defect_GNN/utilities.py:25-32` (`calculateEdgeAttributes`)
 
 **File:** `include/graph/edge_features.hpp`
+
 ```cpp
 namespace defect_gnn::graph {
 
@@ -299,6 +303,7 @@ Eigen::VectorXd gaussian_rbf(double distance,
 ### 1.5 Crystal Graph
 
 **File:** `include/graph/crystal_graph.hpp`
+
 ```cpp
 namespace defect_gnn::graph {
 
@@ -308,27 +313,27 @@ public:
                  const NeighborList& neighbors,
                  const std::map<int, Eigen::VectorXd>& atom_embeddings,
                  double r_cutoff = 10.0);
-    
+
     // Node features: [num_atoms, feature_dim]
     // Initially 92-dim CGCNN embeddings, later + topo features
     const Eigen::MatrixXd& node_features() const;
-    
+
     // Edge index: [2, num_edges] - COO format (source, target)
     const Eigen::MatrixXi& edge_index() const;
-    
+
     // Edge attributes: [num_edges, 100] - Gaussian RBF
     const Eigen::MatrixXd& edge_attr() const;
-    
+
     // Target value (formation energy)
     double target() const;
     void set_target(double y);
-    
+
     // Add topological features to node features
     void add_topo_features(const Eigen::MatrixXd& topo);  // [num_atoms, n_pca]
-    
+
     size_t num_nodes() const;
     size_t num_edges() const;
-    
+
 private:
     Eigen::MatrixXd node_features_;
     Eigen::MatrixXi edge_index_;
@@ -352,6 +357,7 @@ private:
 ### 2.1.1 Ripser Setup
 
 **Step 1:** Clone Ripser into third_party
+
 ```bash
 cd third_party
 git clone https://github.com/Ripser/ripser.git
@@ -360,6 +366,7 @@ rm -rf ripser/.git
 ```
 
 **Step 2:** Create wrapper header `include/topology/ripser_wrapper.hpp`
+
 ```cpp
 #pragma once
 
@@ -405,6 +412,7 @@ PersistenceResult compute_persistence(
 ```
 
 **Step 3:** Implementation notes for `src/topology/ripser_wrapper.cpp`
+
 ```cpp
 // Ripser uses a specific input format. Key integration points:
 //
@@ -423,6 +431,7 @@ PersistenceResult compute_persistence(
 ### 2.1.2 CMake Integration
 
 Add to `CMakeLists.txt`:
+
 ```cmake
 # Ripser (persistent homology)
 if(EXISTS "${CMAKE_SOURCE_DIR}/third_party/ripser/ripser.cpp")
@@ -440,44 +449,18 @@ endif()
 **Reference:** `Defect_GNN/Betti_number.py:93-224`
 
 **Key parameters:**
+
 - `r_cutoff = 2.5` Å (different from graph cutoff!)
 - `maxdim = 2` (compute β₀, β₁, β₂)
 
-**File:** `include/topology/persistent_homology.hpp`
-```cpp
-namespace defect_gnn::topology {
-
-// A persistence pair (birth, death)
-struct PersistencePair {
-    double birth;
-    double death;
-    double persistence() const { return death - birth; }
-};
-
-// Persistence diagram for one dimension
-using PersistenceDiagram = std::vector<PersistencePair>;
-
-// Compute persistence diagrams for a point cloud
-// Reference: Betti_number.py:93-141 (get_betti_num)
-struct PersistenceResult {
-    PersistenceDiagram dim0;  // Connected components
-    PersistenceDiagram dim1;  // Loops
-    PersistenceDiagram dim2;  // Voids
-};
-
-PersistenceResult compute_persistence(
-    const Eigen::MatrixXd& point_cloud,  // Nx3
-    double max_radius = 2.5
-);
-
-}  // namespace defect_gnn::topology
-```
+The persistence computation is handled by `ripser_wrapper.hpp` (defined in 2.1.1 above).
 
 ### 2.3 Atom-Specific Betti Features
 
 **Reference:** `Defect_GNN/Betti_number.py:143-254`
 
 **Algorithm:**
+
 1. For each atom i in structure:
 2. For each element type e:
 3. Build point cloud: atom i + all atoms of type e within cutoff
@@ -485,6 +468,7 @@ PersistenceResult compute_persistence(
 5. Extract 35 statistical features
 
 **File:** `include/topology/betti_features.hpp`
+
 ```cpp
 namespace defect_gnn::topology {
 
@@ -526,6 +510,7 @@ Eigen::MatrixXd compute_structure_betti_features(
 **Reference:** `Defect_GNN/dataset_PCA.py:80-81`
 
 **File:** `include/topology/pca.hpp`
+
 ```cpp
 namespace defect_gnn::topology {
 
@@ -534,17 +519,17 @@ public:
     // Fit PCA on training data
     // n_components: 1, 2, 4, 6, 8, or 10 (paper tests these)
     void fit(const Eigen::MatrixXd& X, int n_components = 6);
-    
+
     // Transform new data
     Eigen::MatrixXd transform(const Eigen::MatrixXd& X) const;
-    
+
     // Save/load fitted PCA
     void save(const std::string& path) const;
     void load(const std::string& path);
-    
+
     // Explained variance ratio
     Eigen::VectorXd explained_variance_ratio() const;
-    
+
 private:
     Eigen::MatrixXd components_;    // [n_components, 35]
     Eigen::VectorXd mean_;          // [35]
@@ -567,6 +552,7 @@ private:
 Use Eigen for all matrix operations. Define convenience aliases.
 
 **File:** `include/nn/tensor.hpp`
+
 ```cpp
 namespace defect_gnn::nn {
 
@@ -592,20 +578,21 @@ Tensor2D batch_norm(const Tensor2D& x,
 ### 3.3 Linear Layer
 
 **File:** `include/nn/linear.hpp`
+
 ```cpp
 namespace defect_gnn::nn {
 
 class Linear {
 public:
     Linear(int in_features, int out_features, bool bias = true);
-    
+
     // Forward: Y = XW^T + b
     Tensor2D forward(const Tensor2D& x) const;
-    
+
     // Weight access for loading pretrained
     void set_weight(const Tensor2D& W);
     void set_bias(const Tensor1D& b);
-    
+
 private:
     Tensor2D weight_;  // [out_features, in_features]
     Tensor1D bias_;    // [out_features]
@@ -620,6 +607,7 @@ private:
 **Reference:** PyTorch Geometric `MessagePassing` class
 
 **File:** `include/nn/conv/message_passing.hpp`
+
 ```cpp
 namespace defect_gnn::nn {
 
@@ -629,19 +617,19 @@ public:
     // 1. message(x_i, x_j, edge_attr) - compute messages
     // 2. aggregate(messages, edge_index) - sum/mean/max per node
     // 3. update(x_i, aggregated) - update node features
-    
+
     virtual Tensor2D forward(
         const Tensor2D& x,              // [N, F_in]
         const Eigen::MatrixXi& edge_index,  // [2, E]
         const Tensor2D& edge_attr       // [E, D]
     ) = 0;
-    
+
 protected:
     // Aggregation: scatter_add, scatter_mean, etc.
     Tensor2D scatter_add(const Tensor2D& src,
                          const Eigen::VectorXi& index,
                          int dim_size);
-    
+
     virtual ~MessagePassing() = default;
 };
 
@@ -654,6 +642,7 @@ protected:
 **Paper:** Xie & Grossman, Phys. Rev. Lett. 2018
 
 **File:** `include/nn/conv/cgconv.hpp`
+
 ```cpp
 namespace defect_gnn::nn {
 
@@ -665,13 +654,13 @@ namespace defect_gnn::nn {
 class CGConv : public MessagePassing {
 public:
     CGConv(int channels, int edge_dim, bool batch_norm = true);
-    
+
     Tensor2D forward(const Tensor2D& x,
                      const Eigen::MatrixXi& edge_index,
                      const Tensor2D& edge_attr) override;
-    
+
     void load_weights(/* weight dict */);
-    
+
 private:
     Linear lin_f_;  // Filter network
     Linear lin_s_;  // Core network
@@ -687,6 +676,7 @@ private:
 **Paper:** Brody et al., "How Attentive are Graph Attention Networks?"
 
 **File:** `include/nn/conv/gatv2conv.hpp`
+
 ```cpp
 namespace defect_gnn::nn {
 
@@ -701,11 +691,11 @@ public:
               int heads = 1, int edge_dim = -1,
               double negative_slope = 0.2,
               double dropout = 0.0);  // Dropout only in training
-    
+
     Tensor2D forward(const Tensor2D& x,
                      const Eigen::MatrixXi& edge_index,
                      const Tensor2D& edge_attr) override;
-    
+
 private:
     int heads_;
     Linear lin_l_, lin_r_;  // Left and right projections
@@ -723,6 +713,7 @@ private:
 **Paper:** Shi et al., "Masked Label Prediction"
 
 **File:** `include/nn/conv/transformer_conv.hpp`
+
 ```cpp
 namespace defect_gnn::nn {
 
@@ -733,11 +724,11 @@ class TransformerConv : public MessagePassing {
 public:
     TransformerConv(int in_channels, int out_channels,
                     int heads = 1, int edge_dim = -1);
-    
+
     Tensor2D forward(const Tensor2D& x,
                      const Eigen::MatrixXi& edge_index,
                      const Tensor2D& edge_attr) override;
-    
+
 private:
     int heads_;
     Linear lin_query_, lin_key_, lin_value_;
@@ -754,8 +745,14 @@ private:
 
 **Reference:** Paper Section "Model Performance" + Table 2
 
-**File:** `include/nn/pool/global_pool.hpp`
+**File:** `include/nn/pool.hpp`
+
 ```cpp
+#pragma once
+
+#include "nn/tensor.hpp"
+#include <Eigen/Dense>
+
 namespace defect_gnn::nn {
 
 // Global max pooling: take max over all nodes per graph
@@ -780,6 +777,7 @@ Tensor2D global_mean_pool(const Tensor2D& x,
 **Reference:** `model_embedding.py` - all three model classes
 
 **File:** `include/nn/model.hpp`
+
 ```cpp
 namespace defect_gnn::nn {
 
@@ -795,25 +793,25 @@ public:
               int num_topo_features,  // PCA components (0 to disable)
               int num_heads = 1,      // For GAT/Transformer
               PoolType pool = PoolType::Max);
-    
+
     // Forward pass
     // Returns: [batch_size] formation energy predictions
     Tensor1D forward(const std::vector<graph::CrystalGraph>& batch);
-    
+
     // Load pretrained weights from PyTorch checkpoint
     void load_weights(const std::string& path);
-    
+
 private:
     // Embedding: maps atomic number to hidden_channels - topo_features
     Tensor2D embedding_;  // [100, embed_dim]
-    
+
     // Convolution layers
     std::vector<std::unique_ptr<MessagePassing>> conv_layers_;
-    
+
     // MLP head
     Linear lin1_, lin2_;
     // BatchNorm after lin1
-    
+
     int num_topo_features_;
     PoolType pool_type_;
 };
@@ -822,6 +820,7 @@ private:
 ```
 
 **Key difference from Configurational-Disorder code:**
+
 ```cpp
 // In forward():
 // 1. Embed atomic numbers
@@ -852,6 +851,7 @@ return lin2(relu(lin1(global_feature)));
 **Reference:** `Defect_GNN/dataset_PCA.py` + `Configurational-Disorder/Disorder_GNN/dataset.py`
 
 **File:** `include/train/dataset.hpp`
+
 ```cpp
 namespace defect_gnn::train {
 
@@ -860,20 +860,20 @@ public:
     DefectDataset(const std::string& root,
                   int n_pca_components = 6,
                   bool precompute_betti = true);
-    
+
     // Access
     const graph::CrystalGraph& operator[](size_t idx) const;
     size_t size() const;
-    
+
     // Shuffle for training
     void shuffle();
-    
+
     // Split into train/val/test
     static std::tuple<DefectDataset, DefectDataset, DefectDataset>
     random_split(DefectDataset& full,
                  double train_ratio = 0.6,
                  double val_ratio = 0.2);
-    
+
 private:
     std::vector<graph::CrystalGraph> graphs_;
     topology::PCA pca_;  // Fitted on training set
@@ -885,6 +885,7 @@ private:
 ### 4.2 DataLoader (Batching)
 
 **File:** `include/train/dataloader.hpp`
+
 ```cpp
 namespace defect_gnn::train {
 
@@ -905,14 +906,14 @@ struct BatchedGraph {
 class DataLoader {
 public:
     DataLoader(DefectDataset& dataset, int batch_size, bool shuffle = true);
-    
+
     // Iterator interface
     class Iterator;
     Iterator begin();
     Iterator end();
-    
+
     size_t num_batches() const;
-    
+
 private:
     DefectDataset& dataset_;
     int batch_size_;
@@ -925,6 +926,7 @@ private:
 ### 4.3 Optimizer (Adam)
 
 **File:** `include/train/optimizer.hpp`
+
 ```cpp
 namespace defect_gnn::train {
 
@@ -933,10 +935,10 @@ public:
     Adam(/* model parameters */, double lr = 1e-3,
          double beta1 = 0.9, double beta2 = 0.999,
          double weight_decay = 5e-4, double eps = 1e-8);
-    
+
     void step(/* gradients */);
     void zero_grad();
-    
+
 private:
     // First and second moment estimates for each parameter
 };
@@ -951,6 +953,7 @@ private:
 **Reference:** `Configurational-Disorder/Disorder_GNN/GNN.py`
 
 **File:** `include/train/trainer.hpp`
+
 ```cpp
 namespace defect_gnn::train {
 
@@ -966,13 +969,13 @@ struct TrainConfig {
 class Trainer {
 public:
     Trainer(nn::DefectGNN& model, const TrainConfig& config);
-    
+
     void fit(DefectDataset& train_set, DefectDataset& val_set);
     double evaluate(DefectDataset& test_set);  // Returns MAE
-    
+
     // Loss: MAE (paper uses sum of abs errors)
     double compute_loss(const Tensor1D& pred, const Tensor1D& target);
-    
+
 private:
     nn::DefectGNN& model_;
     TrainConfig config_;
@@ -995,9 +998,10 @@ private:
 ### 5.2 Validation Script
 
 **File:** `scripts/validate_against_pytorch.py`
+
 ```python
 """
-Load same weights in both PyTorch and C++, 
+Load same weights in both PyTorch and C++,
 run forward pass on same input,
 compare outputs.
 """
@@ -1008,13 +1012,13 @@ compare outputs.
 
 ### 5.3 Target Metrics (from paper)
 
-| Model | Pooling | Topo Features | MAE (eV) |
-|-------|---------|---------------|----------|
-| Transformer | Mean | No | 1.55 |
-| Transformer | Max | No | 1.55 |
-| Transformer | Max | Yes | **0.72** |
-| GAT | Max | Yes | 0.94 |
-| CGNN | Max | Yes | 0.98 |
+| Model       | Pooling | Topo Features | MAE (eV) |
+| ----------- | ------- | ------------- | -------- |
+| Transformer | Mean    | No            | 1.55     |
+| Transformer | Max     | No            | 1.55     |
+| Transformer | Max     | Yes           | **0.72** |
+| GAT         | Max     | Yes           | 0.94     |
+| CGNN        | Max     | Yes           | 0.98     |
 
 **Success criterion:** Achieve MAE ≤ 0.80 eV with Transformer + Max Pool + Topo Features.
 
@@ -1025,6 +1029,7 @@ compare outputs.
 ### 6.1 Scope
 
 Interactive 3D crystal viewer where users can:
+
 1. Load perovskite structure
 2. Click atoms to create vacancies
 3. See predicted formation energy update in real-time
@@ -1057,7 +1062,7 @@ EMSCRIPTEN_BINDINGS(defect_gnn) {
     function("createVacancy", &create_vacancy);
     function("predictFormationEnergy", &predict_formation_energy);
     function("getAllSiteEnergies", &get_all_site_energies);  // For heatmap
-    
+
     class_<Structure>("Structure")
         .function("numAtoms", &Structure::num_atoms)
         .function("getAtomPosition", &Structure::get_atom_position)
@@ -1097,36 +1102,41 @@ web/
 
 ## Appendix A: Key Reference Mapping
 
-| Your File | Reference Source | Notes |
-|-----------|------------------|-------|
-| `vasp_parser.cpp` | `Betti_number.py:15-46` | VASP format parsing |
-| `edge_features.cpp` | `utilities.py:25-32` | Gaussian RBF |
-| `crystal_graph.cpp` | `utilities.py:34-71` | `structureToGraph` |
-| `betti_features.cpp` | `Betti_number.py:93-254` | All Betti computation |
-| `cgconv.cpp` | PyG `CGConv` + paper | |
-| `gatv2conv.cpp` | PyG `GATv2Conv` | |
-| `transformer_conv.cpp` | PyG `TransformerConv` | |
-| `model.cpp` | `model_embedding.py` | **Add topo concat + max pool** |
-| `dataset.cpp` | `dataset_PCA.py` | |
-| `trainer.cpp` | `GNN.py` | Training loop |
+| Your File              | Reference Source         | Notes                          |
+| ---------------------- | ------------------------ | ------------------------------ |
+| `vasp_parser.cpp`      | `Betti_number.py:15-46`  | VASP format parsing            |
+| `structure.cpp`        | —                        | Crystal structure + Atom class |
+| `edge_features.cpp`    | `utilities.py:25-32`     | Gaussian RBF                   |
+| `crystal_graph.cpp`    | `utilities.py:34-71`     | `structureToGraph`             |
+| `ripser_wrapper.cpp`   | Ripser C++ source        | Persistence computation        |
+| `betti_features.cpp`   | `Betti_number.py:93-254` | 35 Betti statistics            |
+| `pca.cpp`              | `dataset_PCA.py:80-81`   | Dimensionality reduction       |
+| `cgconv.cpp`           | PyG `CGConv` + paper     |                                |
+| `gatv2conv.cpp`        | PyG `GATv2Conv`          |                                |
+| `transformer_conv.cpp` | PyG `TransformerConv`    |                                |
+| `pool.cpp`             | PyG global pooling       | **Max pool is critical**       |
+| `model.cpp`            | `model_embedding.py`     | **Add topo concat + max pool** |
+| `dataset.cpp`          | `dataset_PCA.py`         |                                |
+| `trainer.cpp`          | `GNN.py`                 | Training loop                  |
 
 ---
 
 ## Appendix B: Third-Party Libraries
 
-| Library | Purpose | Install |
-|---------|---------|---------|
-| **Eigen** | Linear algebra | Header-only, copy to `third_party/` |
-| **nlohmann/json** | JSON parsing | Header-only |
-| **nanoflann** | KD-tree | Header-only |
-| **Ripser** | Persistent homology | Clone from GitHub |
-| **Emscripten** | WASM compilation | `emsdk install latest` |
+| Library           | Purpose             | Install                             |
+| ----------------- | ------------------- | ----------------------------------- |
+| **Eigen**         | Linear algebra      | Header-only, copy to `third_party/` |
+| **nlohmann/json** | JSON parsing        | Header-only                         |
+| **nanoflann**     | KD-tree             | Header-only                         |
+| **Ripser**        | Persistent homology | Clone from GitHub                   |
+| **Emscripten**    | WASM compilation    | `emsdk install latest`              |
 
 ---
 
 ## Appendix C: Milestones Checklist
 
 ### Phase 1: Data Pipeline
+
 - [ ] Parse VASP files
 - [ ] Build crystal structures with PBC
 - [ ] Construct neighbor lists
@@ -1134,12 +1144,15 @@ web/
 - [ ] Build crystal graph objects
 
 ### Phase 2: Persistent Homology
-- [ ] Compute persistence diagrams (via Ripser or Python)
+
+- [ ] Integrate C++ Ripser via ripser_wrapper
+- [ ] Compute persistence diagrams
 - [ ] Extract 35 Betti statistics per atom
 - [ ] Implement PCA for dimensionality reduction
 - [ ] Integrate topo features into graph
 
 ### Phase 3: Neural Network
+
 - [ ] Implement Linear layer
 - [ ] Implement CGConv
 - [ ] Implement GATv2Conv
@@ -1148,17 +1161,20 @@ web/
 - [ ] Build full model with topo feature injection
 
 ### Phase 4: Training
+
 - [ ] Dataset class with preprocessing
 - [ ] DataLoader with batching
 - [ ] Training loop (or just use PyTorch + export)
 - [ ] Weight loading from PyTorch checkpoint
 
 ### Phase 5: Validation
+
 - [ ] Unit tests pass
 - [ ] Forward pass matches PyTorch
 - [ ] Reproduce paper MAE (~0.72 eV)
 
 ### Phase 6: WebAssembly (Backlog)
+
 - [ ] Compile core to WASM
 - [ ] Embind API
 - [ ] Three.js crystal viewer
