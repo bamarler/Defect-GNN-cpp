@@ -22,7 +22,7 @@ export default function Visualizer(): React.ReactElement {
 
   const [structureData, setStructureData] = useState<StructureData | null>(null);
   const [graphData, setGraphData] = useState<GraphData | null>(null);
-  const [showEdges, setShowEdges] = useState(false);
+  const [showGraph, setShowGraph] = useState(false);
   const [rCutoff, setRCutoff] = useState(5.0);
   const [maxNeighbors, setMaxNeighbors] = useState(12);
 
@@ -65,9 +65,13 @@ export default function Visualizer(): React.ReactElement {
       const success = loadStructure(vaspContent);
 
       if (success) {
-        buildGraph(rCutoff, maxNeighbors);
         setStructureData(getStructureData());
-        setGraphData(getGraphData());
+
+        // Build graph if in graph mode
+        if (showGraph) {
+          buildGraph(rCutoff, maxNeighbors);
+          setGraphData(getGraphData());
+        }
       }
     } catch (err) {
       console.error('Failed to load structure:', err);
@@ -79,34 +83,35 @@ export default function Visualizer(): React.ReactElement {
     selectedId,
     structureOptions,
     loadStructure,
-    buildGraph,
     getStructureData,
-    getGraphData,
+    showGraph,
+    buildGraph,
     rCutoff,
     maxNeighbors,
+    getGraphData,
   ]);
 
   useEffect(() => {
     loadSelectedStructure();
   }, [loadSelectedStructure]);
 
-  // Rebuild graph when parameters change
+  // Build graph when toggled on or parameters change
   useEffect(() => {
-    if (!isReady || !structureData) {
+    if (!isReady || !structureData || !showGraph) {
+      setGraphData(null);
       return;
     }
 
     buildGraph(rCutoff, maxNeighbors);
     setGraphData(getGraphData());
-  }, [rCutoff, maxNeighbors, isReady, structureData, buildGraph, getGraphData]);
-
-  const showLoading = isLoading || isLoadingStructure;
+  }, [showGraph, rCutoff, maxNeighbors, isReady, structureData, buildGraph, getGraphData]);
 
   const selectedOption = structureOptions.find((o) => o.id === selectedId);
+  const showLoading = isLoading || isLoadingStructure;
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-black">
-      <CrystalViewer structureData={structureData} graphData={graphData} showEdges={showEdges} />
+      <CrystalViewer structureData={structureData} graphData={graphData} showGraph={showGraph} />
 
       {/* Back button */}
       <div className="pointer-events-none absolute left-4 top-4 z-10">
@@ -146,38 +151,6 @@ export default function Visualizer(): React.ReactElement {
         </div>
       )}
 
-      {/* Controls - desktop */}
-      <div className="pointer-events-none absolute bottom-4 right-4 z-10 hidden md:block">
-        <ControlsPanel
-          rCutoff={rCutoff}
-          setRCutoff={setRCutoff}
-          maxNeighbors={maxNeighbors}
-          setMaxNeighbors={setMaxNeighbors}
-          showEdges={showEdges}
-          setShowEdges={setShowEdges}
-          selectedId={selectedId}
-          setSelectedId={setSelectedId}
-          structureOptions={structureOptions}
-          materials={materials}
-        />
-      </div>
-
-      {/* Controls - mobile */}
-      <div className="pointer-events-none absolute bottom-4 right-4 z-10 md:hidden">
-        <MobileControls
-          rCutoff={rCutoff}
-          setRCutoff={setRCutoff}
-          maxNeighbors={maxNeighbors}
-          setMaxNeighbors={setMaxNeighbors}
-          showEdges={showEdges}
-          setShowEdges={setShowEdges}
-          selectedId={selectedId}
-          setSelectedId={setSelectedId}
-          structureOptions={structureOptions}
-          materials={materials}
-        />
-      </div>
-
       {/* Structure label - mobile */}
       {selectedOption && (
         <div className="pointer-events-none absolute bottom-20 left-1/2 z-10 -translate-x-1/2 md:hidden">
@@ -196,6 +169,38 @@ export default function Visualizer(): React.ReactElement {
           </div>
         </div>
       )}
+
+      {/* Controls - desktop */}
+      <div className="pointer-events-none absolute bottom-4 right-4 z-10 hidden md:block">
+        <ControlsPanel
+          rCutoff={rCutoff}
+          setRCutoff={setRCutoff}
+          maxNeighbors={maxNeighbors}
+          setMaxNeighbors={setMaxNeighbors}
+          showGraph={showGraph}
+          setShowGraph={setShowGraph}
+          selectedId={selectedId}
+          setSelectedId={setSelectedId}
+          structureOptions={structureOptions}
+          materials={materials}
+        />
+      </div>
+
+      {/* Controls - mobile */}
+      <div className="pointer-events-none absolute bottom-4 right-4 z-10 md:hidden">
+        <MobileControls
+          rCutoff={rCutoff}
+          setRCutoff={setRCutoff}
+          maxNeighbors={maxNeighbors}
+          setMaxNeighbors={setMaxNeighbors}
+          showGraph={showGraph}
+          setShowGraph={setShowGraph}
+          selectedId={selectedId}
+          setSelectedId={setSelectedId}
+          structureOptions={structureOptions}
+          materials={materials}
+        />
+      </div>
     </div>
   );
 }

@@ -9,8 +9,8 @@ interface MobileControlsProps {
   setRCutoff: (value: number) => void;
   maxNeighbors: number;
   setMaxNeighbors: (value: number) => void;
-  showEdges: boolean;
-  setShowEdges: (value: boolean) => void;
+  showGraph: boolean;
+  setShowGraph: (value: boolean) => void;
   selectedId: string;
   setSelectedId: (value: string) => void;
   structureOptions: StructureOption[];
@@ -22,8 +22,8 @@ export function MobileControls({
   setRCutoff,
   maxNeighbors,
   setMaxNeighbors,
-  showEdges,
-  setShowEdges,
+  showGraph,
+  setShowGraph,
   selectedId,
   setSelectedId,
   structureOptions,
@@ -63,7 +63,7 @@ export function MobileControls({
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4">
           <div className="glass-card pointer-events-auto w-full max-w-sm p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-text-primary font-semibold">Parameters</h3>
+              <h3 className="text-text-primary font-semibold">Controls</h3>
               <button
                 onClick={(): void => setIsOpen(false)}
                 className="text-text-muted hover:text-text-primary"
@@ -92,53 +92,57 @@ export function MobileControls({
                 />
               </div>
 
-              <div>
-                <label className="text-text-muted mb-2 flex justify-between text-sm">
-                  <span>r_cutoff</span>
-                  <span>{rCutoff.toFixed(1)} Å</span>
-                </label>
-                <input
-                  type="range"
-                  min="2"
-                  max="10"
-                  step="0.5"
-                  value={rCutoff}
-                  onChange={(e): void => setRCutoff(parseFloat(e.target.value))}
-                  className="w-full accent-primary-mid"
-                />
-              </div>
-
-              <div>
-                <label className="text-text-muted mb-2 flex justify-between text-sm">
-                  <span>max_neighbors</span>
-                  <span>{maxNeighbors}</span>
-                </label>
-                <input
-                  type="range"
-                  min="4"
-                  max="24"
-                  step="1"
-                  value={maxNeighbors}
-                  onChange={(e): void => setMaxNeighbors(parseInt(e.target.value))}
-                  className="w-full accent-primary-mid"
-                />
-              </div>
-
               <div className="flex items-center justify-between">
-                <span className="text-text-muted text-sm">Show edges</span>
+                <span className="text-text-muted text-sm">Show graph</span>
                 <button
-                  onClick={(): void => setShowEdges(!showEdges)}
+                  onClick={(): void => setShowGraph(!showGraph)}
                   className={`h-7 w-12 rounded-full transition-colors ${
-                    showEdges ? 'bg-primary-mid' : 'bg-gray-600'
+                    showGraph ? 'bg-primary-mid' : 'bg-gray-600'
                   }`}
                 >
                   <div
                     className={`h-6 w-6 rounded-full bg-white transition-transform ${
-                      showEdges ? 'translate-x-5' : 'translate-x-0.5'
+                      showGraph ? 'translate-x-5' : 'translate-x-0.5'
                     }`}
                   />
                 </button>
               </div>
+
+              {showGraph && (
+                <>
+                  <div>
+                    <label className="text-text-muted mb-2 flex justify-between text-sm">
+                      <span>r_cutoff</span>
+                      <span>{rCutoff.toFixed(1)} Å</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="2"
+                      max="10"
+                      step="0.5"
+                      value={rCutoff}
+                      onChange={(e): void => setRCutoff(parseFloat(e.target.value))}
+                      className="w-full accent-primary-mid"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-text-muted mb-2 flex justify-between text-sm">
+                      <span>max_neighbors</span>
+                      <span>{maxNeighbors}</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="4"
+                      max="24"
+                      step="1"
+                      value={maxNeighbors}
+                      onChange={(e): void => setMaxNeighbors(parseInt(e.target.value))}
+                      className="w-full accent-primary-mid"
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

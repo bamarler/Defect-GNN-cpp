@@ -14,7 +14,6 @@ export interface StructureData {
   atomTypes: Int32Array;
   elements: string[];
   elementCounts: number[];
-  latticeVectors: Float32Array;
   numAtoms: number;
 }
 
@@ -22,6 +21,7 @@ export interface GraphData {
   edgeSources: Int32Array;
   edgeTargets: Int32Array;
   edgeDistances: Float32Array;
+  edgeDisplacements: Float32Array;
   numEdges: number;
 }
 
@@ -84,12 +84,16 @@ export function useDefectGNN(): UseDefectGNNResult {
           document.head.appendChild(script);
         });
 
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
 
         // @ts-expect-error - createDefectGNNModule is added globally by the script
         const wasmModule: DefectGNNModule = await window.createDefectGNNModule();
 
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
 
         moduleRef.current = wasmModule;
         apiRef.current = new wasmModule.WasmAPI();
@@ -118,7 +122,6 @@ export function useDefectGNN(): UseDefectGNNResult {
 
   const loadStructure = useCallback((vaspContent: string): boolean => {
     if (!apiRef.current) {
-      console.error('WASM module not loaded');
       return false;
     }
     return apiRef.current.loadStructure(vaspContent);
@@ -126,7 +129,6 @@ export function useDefectGNN(): UseDefectGNNResult {
 
   const buildGraph = useCallback((rCutoff: number, maxNeighbors: number): void => {
     if (!apiRef.current) {
-      console.error('WASM module not loaded');
       return;
     }
     apiRef.current.buildGraph(rCutoff, maxNeighbors);
@@ -149,7 +151,6 @@ export function useDefectGNN(): UseDefectGNNResult {
       atomTypes: vectorIntToArray(api.getAtomTypes()),
       elements: vectorStringToArray(api.getElements()),
       elementCounts: Array.from(vectorIntToArray(api.getElementCounts())),
-      latticeVectors: vectorFloatToArray(api.getLatticeVectors()),
       numAtoms,
     };
   }, []);
@@ -170,6 +171,7 @@ export function useDefectGNN(): UseDefectGNNResult {
       edgeSources: vectorIntToArray(api.getEdgeSources()),
       edgeTargets: vectorIntToArray(api.getEdgeTargets()),
       edgeDistances: vectorFloatToArray(api.getEdgeDistances()),
+      edgeDisplacements: vectorFloatToArray(api.getEdgeDisplacements()),
       numEdges,
     };
   }, []);

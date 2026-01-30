@@ -1,5 +1,3 @@
-// Type definitions for the WASM module
-
 export interface VectorFloat {
   size(): number;
   get(index: number): number;
@@ -19,18 +17,23 @@ export interface VectorString {
 }
 
 export interface WasmAPI {
+  // Structure
   loadStructure(vaspContent: string): boolean;
-  buildGraph(rCutoff: number, maxNeighbors: number): void;
   numAtoms(): number;
   getPositions(): VectorFloat;
   getAtomTypes(): VectorInt;
   getElements(): VectorString;
   getElementCounts(): VectorInt;
   getLatticeVectors(): VectorFloat;
+
+  // Graph
+  buildGraph(rCutoff: number, maxNeighbors: number): void;
   numEdges(): number;
   getEdgeSources(): VectorInt;
   getEdgeTargets(): VectorInt;
   getEdgeDistances(): VectorFloat;
+  getEdgeDisplacements(): VectorFloat;
+
   delete(): void;
 }
 

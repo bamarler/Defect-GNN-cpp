@@ -7,7 +7,6 @@ import { getAtomicNumber, getColorByElementIndex, getRadiusByAtomicNumber } from
 interface Viewer {
   addSphere: (spec: SphereSpec) => void;
   addCylinder: (spec: CylinderSpec) => void;
-  setBackgroundColor: (color: string) => void;
   zoomTo: () => void;
   zoom: (factor: number) => void;
   render: () => void;
@@ -42,13 +41,13 @@ declare global {
 interface CrystalViewerProps {
   structureData: StructureData | null;
   graphData: GraphData | null;
-  showEdges: boolean;
+  showGraph: boolean;
 }
 
 export function CrystalViewer({
   structureData,
   graphData,
-  showEdges,
+  showGraph,
 }: CrystalViewerProps): React.ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Viewer | null>(null);
@@ -81,9 +80,10 @@ export function CrystalViewer({
     const viewer = viewerRef.current;
     viewer.clear();
 
-    const { positions, atomTypes, elements } = structureData;
+    const { positions, atomTypes, elements, numAtoms } = structureData;
 
-    for (let i = 0; i < structureData.numAtoms; i++) {
+    // Always render unit cell atoms
+    for (let i = 0; i < numAtoms; i++) {
       const x = positions[i * 3];
       const y = positions[i * 3 + 1];
       const z = positions[i * 3 + 2];
@@ -98,28 +98,26 @@ export function CrystalViewer({
       });
     }
 
-    if (showEdges && graphData) {
-      const { edgeSources, edgeTargets } = graphData;
+    // Draw edges in graph mode
+    if (showGraph && graphData) {
+      const { edgeSources, edgeDisplacements, numEdges } = graphData;
 
-      for (let i = 0; i < graphData.numEdges; i++) {
+      for (let i = 0; i < numEdges; i++) {
         const src = edgeSources[i];
-        const tgt = edgeTargets[i];
 
-        if (src >= tgt) {
-          continue;
-        }
+        // Start position (source atom)
+        const startX = positions[src * 3];
+        const startY = positions[src * 3 + 1];
+        const startZ = positions[src * 3 + 2];
+
+        // End position = start + displacement
+        const endX = startX + edgeDisplacements[i * 3];
+        const endY = startY + edgeDisplacements[i * 3 + 1];
+        const endZ = startZ + edgeDisplacements[i * 3 + 2];
 
         viewer.addCylinder({
-          start: {
-            x: positions[src * 3],
-            y: positions[src * 3 + 1],
-            z: positions[src * 3 + 2],
-          },
-          end: {
-            x: positions[tgt * 3],
-            y: positions[tgt * 3 + 1],
-            z: positions[tgt * 3 + 2],
-          },
+          start: { x: startX, y: startY, z: startZ },
+          end: { x: endX, y: endY, z: endZ },
           radius: 0.025,
           color: '#4a4a4a',
           fromCap: false,
@@ -131,7 +129,7 @@ export function CrystalViewer({
     viewer.zoomTo();
     viewer.zoom(0.8);
     viewer.render();
-  }, [structureData, graphData, showEdges]);
+  }, [structureData, graphData, showGraph]);
 
   return <div ref={containerRef} className="h-full w-full" style={{ position: 'relative' }} />;
 }
