@@ -18,20 +18,24 @@ VASPStructure parse_vasp(const std::string& filepath) {
 
     std::vector<std::string> lines;
 
-    while (!file.eof()) {
-        std::string line;
-        std::getline(file, line);
-
+    std::string line;
+    while (std::getline(file, line)) {
         lines.push_back(line);
     }
 
     VASPStructure vasp;
+
+    std::stringstream scale_ss(lines[1]);
+    double scale_factor = 1.0;
+    scale_ss >> scale_factor;
 
     for (int i = 0; i < 3; i++) {
         std::stringstream iss(lines[i + 2]);
 
         iss >> vasp.lattice(i, 0) >> vasp.lattice(i, 1) >> vasp.lattice(i, 2);
     }
+
+    vasp.lattice *= scale_factor;
 
     std::stringstream elem_ss(lines[5]);
     std::string elem;
