@@ -23,6 +23,10 @@ const std::vector<Atom>& Structure::atoms() const {
     return atoms_;
 }
 
+size_t Structure::num_atoms() const {
+    return atoms_.size();
+}
+
 double Structure::distance(size_t i, size_t j) const {
     return displacement(i, j).norm();
 }
