@@ -140,12 +140,6 @@ check-deps:
 	else \
 		printf "  $(CROSS) spdlog:       not found (run: make deps)\n"; \
 	fi
-	@# Ripser
-	@if [ -f "$(THIRD_PARTY)/ripser/ripser.cpp" ]; then \
-		printf "  $(CHECK) Ripser:       $(THIRD_PARTY)/ripser/\n"; \
-	else \
-		printf "  $(CROSS) Ripser:       not found (run: make deps)\n"; \
-	fi
 	@printf "\n"
 
 #==============================================================================
@@ -197,15 +191,6 @@ deps:
 		printf "  $(CHECK) spdlog installed\n"; \
 	else \
 		printf "  $(CHECK) spdlog already installed\n"; \
-	fi
-	@# Ripser (persistent homology)
-	@if [ ! -f "$(THIRD_PARTY)/ripser/ripser.cpp" ]; then \
-		printf "  $(ARROW) Downloading Ripser...\n"; \
-		git clone --depth 1 https://github.com/Ripser/ripser.git $(THIRD_PARTY)/ripser; \
-		rm -rf $(THIRD_PARTY)/ripser/.git; \
-		printf "  $(CHECK) Ripser installed\n"; \
-	else \
-		printf "  $(CHECK) Ripser already installed\n"; \
 	fi
 	@printf "\n"
 	@printf "$(GREEN)All dependencies installed!$(NC)\n"
