@@ -58,7 +58,8 @@ compute_persistence_from_distances(const Eigen::MatrixXd& distance_matrix,
     return result;
 }
 
-PersistenceResult compute_persistence(const Eigen::MatrixXd& point_cloud) {
+PersistenceResult
+compute_persistence(const Eigen::MatrixXd& point_cloud, int max_dim, double threshold) {
     const auto N = point_cloud.rows();
 
     Eigen::MatrixXd dist(N, N);
@@ -73,7 +74,7 @@ PersistenceResult compute_persistence(const Eigen::MatrixXd& point_cloud) {
         }
     }
 
-    return compute_persistence_from_distances(dist);
+    return compute_persistence_from_distances(dist, max_dim, threshold);
 }
 
 }  // namespace defect_gnn::topology

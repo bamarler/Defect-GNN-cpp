@@ -24,9 +24,10 @@ struct PersistenceResult {
 };
 
 PersistenceResult compute_persistence_from_distances(const Eigen::MatrixXd& distance_matrix,
-                                                     int max_dim = 2,
-                                                     double threshold = 2.5);
+                                                     int max_dim,
+                                                     double threshold);
 
-PersistenceResult compute_persistence(const Eigen::MatrixXd& point_cloud);
+PersistenceResult
+compute_persistence(const Eigen::MatrixXd& point_cloud, int max_dim = 2, double threshold = 2.5);
 
 }  // namespace defect_gnn::topology
