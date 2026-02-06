@@ -10,7 +10,7 @@
 
 namespace defect_gnn::io {
 
-VASPStructure parse_vasp(const std::string& filepath) {
+VASPStructure parse_vasp(const std::string& filepath) {  // NOLINT(readability-function-size)
     std::ifstream file(filepath);
     if (!file.is_open()) {
         throw std::runtime_error("Could not open file: " + filepath);
