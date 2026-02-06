@@ -4,6 +4,7 @@
 
 #include <Eigen/Dense>
 
+#include <map>
 #include <vector>
 
 namespace defect_gnn::crystal {
@@ -26,9 +27,12 @@ public:
     [[nodiscard]] double distance(size_t i, size_t j) const;
     [[nodiscard]] Eigen::Vector3d displacement(size_t i, size_t j) const;
 
+    [[nodiscard]] int count(int element) const;
+
 private:
     Eigen::Matrix3d lattice_;
     Eigen::Matrix3d inv_lattice_;
     std::vector<Atom> atoms_;
+    std::map<int, int> counts_;
 };
 }  // namespace defect_gnn::crystal

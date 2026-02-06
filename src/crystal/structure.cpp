@@ -12,6 +12,10 @@ Structure::Structure(const io::VASPStructure& vasp)
         atom.frac_position = vasp.frac_coords.row(i);
         atom.position = lattice_.transpose() * atom.frac_position;
         atoms_.push_back(atom);
+
+        for (size_t i = 0; i < vasp.counts.size(); i++) {
+            counts_[vasp.atom_types[i]] = vasp.counts[i];
+        }
     }
 }
 
@@ -39,6 +43,10 @@ Eigen::Vector3d Structure::displacement(size_t i, size_t j) const {
     }
 
     return lattice_.transpose() * delta_frac;
+}
+
+int Structure::count(int element) const {
+    return counts_.at(element);
 }
 
 }  // namespace defect_gnn::crystal
