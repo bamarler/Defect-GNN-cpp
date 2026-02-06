@@ -59,7 +59,7 @@ compute_persistence_from_distances(const Eigen::MatrixXd& distance_matrix,
 }
 
 PersistenceResult
-compute_persistence(const Eigen::MatrixXd& point_cloud, int max_dim, double threshold) {
+compute_persistence(const Eigen::MatrixXd& point_cloud, double threshold, int max_dim) {
     const auto N = point_cloud.rows();
 
     Eigen::MatrixXd dist(N, N);
