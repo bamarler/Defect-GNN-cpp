@@ -32,4 +32,8 @@ compute_atom_betti_features(const crystal::Structure& structure, size_t atom_idx
 Eigen::MatrixXd compute_structure_betti_features(const crystal::Structure& structure,
                                                  double r_cutoff = 2.5);
 
+void save_betti_features(const std::string& filepath, const Eigen::MatrixXd& features);
+
+Eigen::MatrixXd load_betti_features(const std::string& filepath);
+
 }  // namespace defect_gnn::topology

@@ -1,6 +1,5 @@
 #include "topology/betti_features.hpp"
 
-#include "Eigen/src/Core/Matrix.h"
 #include "crystal/structure.hpp"
 #include "topology/ripser_wrapper.hpp"
 #include "utils/math.hpp"
@@ -8,6 +7,10 @@
 #include <Eigen/Dense>
 
 #include <cmath>
+#include <cstddef>
+#include <fstream>
+#include <ios>
+#include <stdexcept>
 #include <vector>
 
 namespace defect_gnn::topology {
@@ -108,6 +111,40 @@ Eigen::MatrixXd compute_structure_betti_features(const crystal::Structure& struc
     }
 
     return structure_features;
+}
+
+void save_betti_features(const std::string& filepath, const Eigen::MatrixXd& features) {
+    std::ofstream file(filepath, std::ios::binary);
+    if (!file) {
+        throw std::runtime_error("Cannot open file for writing: " + filepath);
+    }
+
+    int rows = static_cast<int>(features.rows());
+    int cols = static_cast<int>(features.cols());
+
+    file.write(reinterpret_cast<const char*>(&rows), sizeof(rows));
+    file.write(reinterpret_cast<const char*>(&cols), sizeof(cols));
+    file.write(reinterpret_cast<const char*>(features.data()),
+               static_cast<std::streamsize>(static_cast<size_t>(rows) * cols * sizeof(double)));
+}
+
+Eigen::MatrixXd load_betti_features(const std::string& filepath) {
+    std::ifstream file(filepath, std::ios::binary);
+    if (!file) {
+        throw std::runtime_error("Cannot open file for reading: " + filepath);
+    }
+
+    int rows = 0;
+    int cols = 0;
+
+    file.read(reinterpret_cast<char*>(&rows), sizeof(rows));
+    file.read(reinterpret_cast<char*>(&cols), sizeof(cols));
+
+    Eigen::MatrixXd features(rows, cols);
+    file.read(reinterpret_cast<char*>(features.data()),
+              static_cast<std::streamsize>(static_cast<size_t>(rows) * cols * sizeof(double)));
+
+    return features;
 }
 
 }  // namespace defect_gnn::topology
