@@ -28,7 +28,8 @@ CROSS := $(RED)✗$(NC)
 ARROW := $(CYAN)→$(NC)
 
 .PHONY: help check-deps deps init configure build run clean rebuild format lint test \
-        wasm-init wasm-build wasm-clean web-init web-dev web-build web-clean all-clean
+        wasm-init wasm-build wasm-clean web-init web-dev web-build web-clean all-clean \
+        preprocess
 
 #==============================================================================
 # Help
@@ -49,6 +50,7 @@ help:
 	@printf "$(YELLOW)Native Build:$(NC)\n"
 	@printf "  build         Compile the native executable\n"
 	@printf "  run           Build and run the executable\n"
+	@printf "  preprocess    Compute Betti features for all structures\n"
 	@printf "  clean         Remove native build artifacts\n"
 	@printf "  rebuild       Clean and rebuild everything\n"
 	@printf "\n"
@@ -252,6 +254,16 @@ clean:
 ## rebuild: Clean and rebuild everything
 rebuild: clean init build
 	@printf "$(GREEN)Full rebuild complete!$(NC)\n"
+	@printf "\n"
+
+## preprocess: Compute Betti features for all structures
+preprocess: build
+	@printf "\n"
+	@printf "$(BLUE)Running Betti preprocessing...$(NC)\n"
+	@printf "\n"
+	@./$(BUILD_DIR)/preprocess_betti
+	@printf "\n"
+	@printf "$(GREEN)Preprocessing complete!$(NC)\n"
 	@printf "\n"
 
 #==============================================================================

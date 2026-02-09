@@ -177,8 +177,9 @@ else()
     file(GLOB_RECURSE SOURCES
         "src/*.cpp"
     )
-    # Remove wasm_bindings.cpp from native build
+    # Remove wasm_bindings.cpp and preprocess_betti.cpp from native build
     list(FILTER SOURCES EXCLUDE REGEX ".*wasm_bindings\\.cpp$")
+    list(FILTER SOURCES EXCLUDE REGEX ".*preprocess_betti\\.cpp$")
 
     if(SOURCES)
         add_executable(defect_gnn ${SOURCES} ${HEADERS})
@@ -188,6 +189,21 @@ else()
     else()
         message(STATUS "No source files found in src/ yet. Skipping executable target.")
     endif()
+
+    # ========================================================================
+    # Preprocessing Executable
+    # ========================================================================
+    add_executable(preprocess_betti
+        src/preprocess/preprocess_betti.cpp
+        src/io/vasp_parser.cpp
+        src/crystal/structure.cpp
+        src/topology/ripser_wrapper.cpp
+        src/topology/betti_features.cpp
+        src/topology/pca.cpp
+    )
+    target_include_directories(preprocess_betti PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+    )
 
     # ========================================================================
     # Tests
