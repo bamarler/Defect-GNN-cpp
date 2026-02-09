@@ -6,16 +6,16 @@ namespace defect_gnn::crystal {
 
 Structure::Structure(const io::VASPStructure& vasp)
     : lattice_(vasp.lattice), inv_lattice_(vasp.lattice.inverse()) {
+    for (size_t elem_idx = 0; elem_idx < vasp.counts.size(); elem_idx++) {
+        counts_[static_cast<int>(elem_idx)] = vasp.counts[elem_idx];
+    }
+
     for (int i = 0; i < vasp.frac_coords.rows(); i++) {
         Atom atom;
         atom.element = vasp.atom_types[i];
         atom.frac_position = vasp.frac_coords.row(i);
         atom.position = lattice_.transpose() * atom.frac_position;
         atoms_.push_back(atom);
-
-        for (size_t i = 0; i < vasp.counts.size(); i++) {
-            counts_[vasp.atom_types[i]] = vasp.counts[i];
-        }
     }
 }
 
