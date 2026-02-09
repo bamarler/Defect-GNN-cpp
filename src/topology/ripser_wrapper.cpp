@@ -1,6 +1,7 @@
 #include "topology/ripser_wrapper.hpp"
 
 #define RIPSER_AS_LIBRARY
+#define RIPSER_SILENT
 
 #include <Eigen/Dense>
 

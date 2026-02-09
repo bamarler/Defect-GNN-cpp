@@ -30,7 +30,7 @@ Eigen::VectorXd
 compute_atom_betti_features(const crystal::Structure& structure, size_t atom_idx, double r_cutoff);
 
 Eigen::MatrixXd compute_structure_betti_features(const crystal::Structure& structure,
-                                                 double r_cutoff = 2.5);
+                                                 double r_cutoff = 10);
 
 void save_betti_features(const std::string& filepath, const Eigen::MatrixXd& features);
 

@@ -39,7 +39,9 @@
 // #define USE_COEFFICIENTS
 
 // #define INDICATE_PROGRESS
-#define PRINT_PERSISTENCE_PAIRS
+#ifndef RIPSER_SILENT
+    #define PRINT_PERSISTENCE_PAIRS
+#endif
 
 // #define USE_ROBINHOOD_HASHMAP
 
@@ -115,7 +117,8 @@ public:
     }
 
     index_t operator()(index_t n, index_t k) const {
-        assert(k < B.size() && n < B[k].size() && n >= k - 1);
+        assert(k < static_cast<index_t>(B.size()) && n < static_cast<index_t>(B[k].size()) &&
+               n >= k - 1);
         return B[k][n];
     }
 };
@@ -174,7 +177,7 @@ std::ostream& operator<<(std::ostream& stream, const entry_t& e) {
 #else
 
 typedef index_t entry_t;
-const index_t get_index(const entry_t& i) {
+index_t get_index(const entry_t& i) {
     return i;
 }
 index_t get_coefficient(const entry_t& i) {
@@ -226,10 +229,10 @@ const entry_t& get_entry(const diameter_entry_t& p) {
 entry_t& get_entry(diameter_entry_t& p) {
     return p.second;
 }
-const index_t get_index(const diameter_entry_t& p) {
+index_t get_index(const diameter_entry_t& p) {
     return get_index(get_entry(p));
 }
-const coefficient_t get_coefficient(const diameter_entry_t& p) {
+coefficient_t get_coefficient(const diameter_entry_t& p) {
     return get_coefficient(get_entry(p));
 }
 const value_t& get_diameter(const diameter_entry_t& p) {
@@ -356,8 +359,8 @@ struct euclidean_distance_matrix {
     }
 
     value_t operator()(const index_t i, const index_t j) const {
-        assert(i < points.size());
-        assert(j < points.size());
+        assert(i < static_cast<index_t>(points.size()));
+        assert(j < static_cast<index_t>(points.size()));
         return std::sqrt(
             std::inner_product(points[i].begin(),
                                points[i].end(),
