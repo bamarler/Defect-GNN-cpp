@@ -49,4 +49,20 @@ int Structure::count(int element) const {
     return counts_.at(element);
 }
 
+Eigen::MatrixXd Structure::compute_distance_matrix() const {
+    auto N = static_cast<Eigen::Index>(atoms_.size());
+    Eigen::MatrixXd distances(N, N);
+
+    for (Eigen::Index i = 0; i < N; i++) {
+        distances(i, i) = 0.0;
+        for (Eigen::Index j = i + 1; j < N; j++) {
+            double d = distance(static_cast<size_t>(i), static_cast<size_t>(j));
+            distances(i, j) = d;
+            distances(j, i) = d;
+        }
+    }
+
+    return distances;
+}
+
 }  // namespace defect_gnn::crystal

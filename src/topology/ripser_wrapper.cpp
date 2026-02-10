@@ -20,7 +20,7 @@ compute_persistence_from_distances(const Eigen::MatrixXd& distance_matrix,
     distances.reserve(N * (N - 1) / 2);
 
     for (int i = 1; i < N; i++) {
-        for (int j = 1; j < i; j++) {
+        for (int j = 0; j < i; j++) {
             distances.push_back(static_cast<value_t>(distance_matrix(i, j)));
         }
     }
@@ -63,17 +63,10 @@ PersistenceResult
 compute_persistence(const Eigen::MatrixXd& point_cloud, double threshold, int max_dim) {
     const auto N = point_cloud.rows();
 
-    Eigen::MatrixXd dist(N, N);
-
-    for (int i = 0; i < N; i++) {
-        dist(i, i) = 0.0;
-
-        for (int j = i + 1; j < N; j++) {
-            double d = (point_cloud.row(i) - point_cloud.row(j)).norm();
-            dist(i, j) = d;
-            dist(j, i) = d;
-        }
-    }
+    Eigen::VectorXd sq_norms = point_cloud.rowwise().squaredNorm();
+    Eigen::MatrixXd sq_dist = sq_norms.replicate(1, N) + sq_norms.transpose().replicate(N, 1) -
+                              2.0 * point_cloud * point_cloud.transpose();
+    Eigen::MatrixXd dist = sq_dist.cwiseMax(0.0).cwiseSqrt();
 
     return compute_persistence_from_distances(dist, max_dim, threshold);
 }

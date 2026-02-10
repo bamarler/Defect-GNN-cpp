@@ -26,8 +26,10 @@ BettiStatistics compute_statistics(const PersistenceDiagram& diagram,
                                    const std::string& values_type,
                                    double weight = 1.0);
 
-Eigen::VectorXd
-compute_atom_betti_features(const crystal::Structure& structure, size_t atom_idx, double r_cutoff);
+Eigen::VectorXd compute_atom_betti_features(const crystal::Structure& structure,
+                                            size_t atom_idx,
+                                            double r_cutoff,
+                                            const Eigen::MatrixXd& dist_matrix);
 
 Eigen::MatrixXd compute_structure_betti_features(const crystal::Structure& structure,
                                                  double r_cutoff = 10);

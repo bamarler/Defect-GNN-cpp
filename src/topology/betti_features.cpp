@@ -48,8 +48,10 @@ BettiStatistics compute_statistics(const PersistenceDiagram& diagram,
             utils::weighted_sum(eigen_values, weight)};
 }
 
-Eigen::VectorXd
-compute_atom_betti_features(const crystal::Structure& structure, size_t atom_idx, double r_cutoff) {
+Eigen::VectorXd compute_atom_betti_features(const crystal::Structure& structure,
+                                            size_t atom_idx,
+                                            double r_cutoff,
+                                            const Eigen::MatrixXd& dist_matrix) {
     auto center_element = structure.atoms()[atom_idx];
     int element_count = structure.count(center_element.element);
 
@@ -61,7 +63,8 @@ compute_atom_betti_features(const crystal::Structure& structure, size_t atom_idx
             continue;
         }
 
-        if (structure.distance(atom_idx, j) < r_cutoff) {
+        if (dist_matrix(static_cast<Eigen::Index>(atom_idx), static_cast<Eigen::Index>(j)) <
+            r_cutoff) {
             auto displacement = structure.displacement(atom_idx, j);
 
             points.emplace_back(center_element.position + displacement);
@@ -105,9 +108,10 @@ compute_atom_betti_features(const crystal::Structure& structure, size_t atom_idx
 Eigen::MatrixXd compute_structure_betti_features(const crystal::Structure& structure,
                                                  double r_cutoff) {
     Eigen::MatrixXd structure_features(structure.num_atoms(), BETTI_FEATURE_DIM);
+    Eigen::MatrixXd dist_matrix = structure.compute_distance_matrix();
 
     for (int i = 0; i < static_cast<int>(structure.num_atoms()); i++) {
-        structure_features.row(i) = compute_atom_betti_features(structure, i, r_cutoff);
+        structure_features.row(i) = compute_atom_betti_features(structure, i, r_cutoff, dist_matrix);
     }
 
     return structure_features;

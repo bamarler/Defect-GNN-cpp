@@ -26,6 +26,7 @@ public:
 
     [[nodiscard]] double distance(size_t i, size_t j) const;
     [[nodiscard]] Eigen::Vector3d displacement(size_t i, size_t j) const;
+    [[nodiscard]] Eigen::MatrixXd compute_distance_matrix() const;
 
     [[nodiscard]] int count(int element) const;
 
