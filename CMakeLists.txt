@@ -197,6 +197,7 @@ else()
         src/preprocess/preprocess_betti.cpp
         src/io/vasp_parser.cpp
         src/crystal/structure.cpp
+        src/graph/neighbor_list.cpp
         src/topology/ripser_wrapper.cpp
         src/topology/betti_features.cpp
         src/topology/pca.cpp

@@ -1,11 +1,13 @@
 #pragma once
 
 #include "crystal/structure.hpp"
+#include "graph/neighbor_list.hpp"
 #include "topology/ripser_wrapper.hpp"
 
 #include <Eigen/Dense>
 
 #include <vector>
+
 namespace defect_gnn::topology {
 
 static constexpr int BETTI_FEATURE_DIM = 35;
@@ -29,7 +31,7 @@ BettiStatistics compute_statistics(const PersistenceDiagram& diagram,
 Eigen::VectorXd compute_atom_betti_features(const crystal::Structure& structure,
                                             size_t atom_idx,
                                             double r_cutoff,
-                                            const Eigen::MatrixXd& dist_matrix);
+                                            const graph::NeighborList& neighbor_list);
 
 Eigen::MatrixXd compute_structure_betti_features(const crystal::Structure& structure,
                                                  double r_cutoff = 10);

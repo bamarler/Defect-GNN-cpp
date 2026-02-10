@@ -1,6 +1,7 @@
 #include "topology/betti_features.hpp"
 
 #include "crystal/structure.hpp"
+#include "graph/neighbor_list.hpp"
 #include "topology/ripser_wrapper.hpp"
 #include "utils/math.hpp"
 
@@ -10,6 +11,7 @@
 #include <cstddef>
 #include <fstream>
 #include <ios>
+#include <limits>
 #include <stdexcept>
 #include <vector>
 
@@ -51,30 +53,18 @@ BettiStatistics compute_statistics(const PersistenceDiagram& diagram,
 Eigen::VectorXd compute_atom_betti_features(const crystal::Structure& structure,
                                             size_t atom_idx,
                                             double r_cutoff,
-                                            const Eigen::MatrixXd& dist_matrix) {
+                                            const graph::NeighborList& neighbor_list) {
     auto center_element = structure.atoms()[atom_idx];
     int element_count = structure.count(center_element.element);
 
-    std::vector<Eigen::Vector3d> points;
-    points.push_back(center_element.position);
+    const auto& neighbors = neighbor_list.neighbors(atom_idx);
 
-    for (size_t j = 0; j < structure.num_atoms(); j++) {
-        if (j == atom_idx) {
-            continue;
-        }
+    Eigen::MatrixXd point_cloud(static_cast<Eigen::Index>(neighbors.size() + 1), 3);
+    point_cloud.row(0) = center_element.position.transpose();
 
-        if (dist_matrix(static_cast<Eigen::Index>(atom_idx), static_cast<Eigen::Index>(j)) <
-            r_cutoff) {
-            auto displacement = structure.displacement(atom_idx, j);
-
-            points.emplace_back(center_element.position + displacement);
-        }
-    }
-
-    Eigen::MatrixXd point_cloud(points.size(), 3);
-
-    for (size_t i = 0; i < points.size(); i++) {
-        point_cloud.row(static_cast<int>(i)) = points[i].transpose();
+    for (size_t i = 0; i < neighbors.size(); i++) {
+        point_cloud.row(static_cast<Eigen::Index>(i + 1)) =
+            (center_element.position + neighbors[i].displacement).transpose();
     }
 
     PersistenceResult result = topology::compute_persistence(point_cloud, r_cutoff);
@@ -93,12 +83,12 @@ Eigen::VectorXd compute_atom_betti_features(const crystal::Structure& structure,
     append(compute_statistics(result.dim0, "death", weight));
 
     // 15 features for dim1 from persistence, birth, and death
-    for (const std::string& type : {"persistence", "birth", "death"}) {
+    for (const char* type : {"persistence", "birth", "death"}) {
         append(compute_statistics(result.dim1, type, weight));
     }
 
     // 15 features for dim2 from persistence, birth, and death
-    for (const std::string& type : {"persistence", "birth", "death"}) {
+    for (const char* type : {"persistence", "birth", "death"}) {
         append(compute_statistics(result.dim2, type, weight));
     }
 
@@ -108,10 +98,11 @@ Eigen::VectorXd compute_atom_betti_features(const crystal::Structure& structure,
 Eigen::MatrixXd compute_structure_betti_features(const crystal::Structure& structure,
                                                  double r_cutoff) {
     Eigen::MatrixXd structure_features(structure.num_atoms(), BETTI_FEATURE_DIM);
-    Eigen::MatrixXd dist_matrix = structure.compute_distance_matrix();
+    graph::NeighborList neighbor_list(structure, r_cutoff, std::numeric_limits<size_t>::max());
 
     for (int i = 0; i < static_cast<int>(structure.num_atoms()); i++) {
-        structure_features.row(i) = compute_atom_betti_features(structure, i, r_cutoff, dist_matrix);
+        structure_features.row(i) =
+            compute_atom_betti_features(structure, i, r_cutoff, neighbor_list);
     }
 
     return structure_features;
