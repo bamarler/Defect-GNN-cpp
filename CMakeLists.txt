@@ -90,34 +90,35 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/third_party/ripser/ripser.cpp")
 else()
     message(STATUS "Ripser not found. Clone to third_party/ripser/")
 endif()
+set_source_files_properties(src/topology/ripser_wrapper.cpp PROPERTIES
+    COMPILE_FLAGS "-Wno-deprecated-declarations"
+)
 
 # ============================================================================
 # Include Directories
 # ============================================================================
-include_directories(
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/third_party
-)
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/third_party)
 
 if(EIGEN3_INCLUDE_DIR)
-    include_directories(${EIGEN3_INCLUDE_DIR})
+    include_directories(SYSTEM ${EIGEN3_INCLUDE_DIR})
 endif()
 
 if(NLOHMANN_JSON_INCLUDE_DIR)
-    include_directories(${NLOHMANN_JSON_INCLUDE_DIR})
+    include_directories(SYSTEM ${NLOHMANN_JSON_INCLUDE_DIR})
 endif()
 
 if(NANOFLANN_INCLUDE_DIR)
-    include_directories(${NANOFLANN_INCLUDE_DIR})
+    include_directories(SYSTEM ${NANOFLANN_INCLUDE_DIR})
 endif()
 
 if(SPDLOG_INCLUDE_DIR)
-    include_directories(${SPDLOG_INCLUDE_DIR})
+    include_directories(SYSTEM ${SPDLOG_INCLUDE_DIR})
 endif()
 
 if(RIPSER_DIR)
-    include_directories(${RIPSER_DIR})
-    include_directories(${RIPSER_DIR}/include)
+    include_directories(SYSTEM ${RIPSER_DIR} ${RIPSER_DIR}/include)
 endif()
 
 # ============================================================================
