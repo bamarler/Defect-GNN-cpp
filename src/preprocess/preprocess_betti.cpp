@@ -30,7 +30,8 @@ std::pair<int, int> parse_structure_id(const std::string& id) {
 void preprocess_all_structure(const std::string& raw_path,  // NOLINT(readability-function-size)
                               const std::string& processed_path,
                               double r_cutoff = 10,  // NOLINT(bugprone-easily-swappable-parameters)
-                              int n_pca_components = 6) {
+                              int n_pca_components = 6,
+                              unsigned num_threads = 8) {
     std::vector<std::string> structure_ids;
 
     for (const auto& entry : fs::directory_iterator(raw_path)) {
@@ -74,7 +75,8 @@ void preprocess_all_structure(const std::string& raw_path,  // NOLINT(readabilit
 
         crystal::Structure structure(vasp);
 
-        Eigen::MatrixXd features = topology::compute_structure_betti_features(structure, r_cutoff);
+        Eigen::MatrixXd features =
+            topology::compute_structure_betti_features(structure, r_cutoff, num_threads);
 
         topology::save_betti_features(std::format("{}/betti/{}.bin", processed_path, structure_id),
                                       features);
@@ -112,8 +114,9 @@ int main(int argc, char** argv) {
     // Default paths
     std::string raw_path = "data/raw/defective_structures";
     std::string processed_path = "data/processed";
-    double r_cutoff = 2.5;
+    double r_cutoff = 10;
     int n_pca_components = 6;
+    unsigned num_threads = 8;
 
     // Parse command line args (optional overrides)
     if (argc >= 3) {
@@ -135,9 +138,10 @@ int main(int argc, char** argv) {
     spdlog::info("  Output path: {}", processed_path);
     spdlog::info("  r_cutoff: {}", r_cutoff);
     spdlog::info("  PCA components: {}", n_pca_components);
+    spdlog::info("  Number of Threads: {}", num_threads);
 
     defect_gnn::preprocess::preprocess_all_structure(
-        raw_path, processed_path, r_cutoff, n_pca_components);
+        raw_path, processed_path, r_cutoff, n_pca_components, num_threads);
 
     spdlog::info("Done!");
     return 0;

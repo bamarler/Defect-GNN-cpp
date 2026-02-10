@@ -15,6 +15,10 @@
 #include <stdexcept>
 #include <vector>
 
+#ifdef _OPENMP
+    #include <omp.h>
+#endif
+
 namespace defect_gnn::topology {
 
 BettiStatistics compute_statistics(const PersistenceDiagram& diagram,
@@ -52,8 +56,9 @@ BettiStatistics compute_statistics(const PersistenceDiagram& diagram,
 
 Eigen::VectorXd compute_atom_betti_features(const crystal::Structure& structure,
                                             size_t atom_idx,
+                                            const graph::NeighborList& neighbor_list,
                                             double r_cutoff,
-                                            const graph::NeighborList& neighbor_list) {
+                                            unsigned num_threads) {
     auto center_element = structure.atoms()[atom_idx];
     int element_count = structure.count(center_element.element);
 
@@ -67,7 +72,7 @@ Eigen::VectorXd compute_atom_betti_features(const crystal::Structure& structure,
             (center_element.position + neighbors[i].displacement).transpose();
     }
 
-    PersistenceResult result = topology::compute_persistence(point_cloud, r_cutoff);
+    PersistenceResult result = topology::compute_persistence(point_cloud, r_cutoff, num_threads);
 
     double weight = 1.0 / element_count;
 
@@ -96,13 +101,18 @@ Eigen::VectorXd compute_atom_betti_features(const crystal::Structure& structure,
 }
 
 Eigen::MatrixXd compute_structure_betti_features(const crystal::Structure& structure,
-                                                 double r_cutoff) {
+                                                 double r_cutoff,
+                                                 unsigned num_threads) {
     Eigen::MatrixXd structure_features(structure.num_atoms(), BETTI_FEATURE_DIM);
     graph::NeighborList neighbor_list(structure, r_cutoff, std::numeric_limits<size_t>::max());
 
-    for (int i = 0; i < static_cast<int>(structure.num_atoms()); i++) {
-        structure_features.row(i) =
-            compute_atom_betti_features(structure, i, r_cutoff, neighbor_list);
+    int num_atoms = static_cast<int>(structure.num_atoms());
+
+#pragma omp parallel for schedule(dynamic)
+    for (int i = 0; i < num_atoms; i++) {
+        Eigen::VectorXd atom_features = compute_atom_betti_features(
+            structure, static_cast<size_t>(i), neighbor_list, r_cutoff, num_threads);
+        structure_features.row(i) = atom_features;
     }
 
     return structure_features;

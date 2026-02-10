@@ -117,6 +117,7 @@ endif()
 
 if(RIPSER_DIR)
     include_directories(${RIPSER_DIR})
+    include_directories(${RIPSER_DIR}/include)
 endif()
 
 # ============================================================================
@@ -205,6 +206,12 @@ else()
     target_include_directories(preprocess_betti PRIVATE
         ${CMAKE_SOURCE_DIR}/include
     )
+
+    find_package(OpenMP)
+    if(OpenMP_CXX_FOUND)
+        target_link_libraries(preprocess_betti PRIVATE OpenMP::OpenMP_CXX)
+        message(STATUS "OpenMP enabled for preprocess_betti")
+    endif()
 
     # ========================================================================
     # Tests

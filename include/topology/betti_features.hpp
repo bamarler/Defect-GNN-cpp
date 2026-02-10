@@ -30,11 +30,13 @@ BettiStatistics compute_statistics(const PersistenceDiagram& diagram,
 
 Eigen::VectorXd compute_atom_betti_features(const crystal::Structure& structure,
                                             size_t atom_idx,
+                                            const graph::NeighborList& neighbor_list,
                                             double r_cutoff,
-                                            const graph::NeighborList& neighbor_list);
+                                            unsigned num_threads);
 
 Eigen::MatrixXd compute_structure_betti_features(const crystal::Structure& structure,
-                                                 double r_cutoff = 10);
+                                                 double r_cutoff = 10,
+                                                 unsigned num_threads = 8);
 
 void save_betti_features(const std::string& filepath, const Eigen::MatrixXd& features);
 

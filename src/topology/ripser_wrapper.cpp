@@ -1,19 +1,17 @@
 #include "topology/ripser_wrapper.hpp"
 
-#define RIPSER_AS_LIBRARY
-#define RIPSER_SILENT
-
 #include <Eigen/Dense>
 
+#define RIPSER_AS_LIBRARY
 #include <ripser/ripser.cpp>  // NOLINT(bugprone-suspicious-include)
 #include <vector>
 
 namespace defect_gnn::topology {
 
-PersistenceResult
-compute_persistence_from_distances(const Eigen::MatrixXd& distance_matrix,
-                                   int max_dim,  // NOLINT(bugprone-easily-swappable-parameters)
-                                   double threshold) {
+PersistenceResult compute_persistence_from_distances(
+    const Eigen::MatrixXd& distance_matrix,
+    double threshold,  // NOLINT(bugprone-easily-swappable-parameters)
+    unsigned num_threads) {
     const auto N = distance_matrix.rows();
 
     std::vector<value_t> distances;
@@ -29,10 +27,10 @@ compute_persistence_from_distances(const Eigen::MatrixXd& distance_matrix,
 
     auto thresh = static_cast<value_t>(threshold);
     coefficient_t modulus = 2;
-    float ratio = 1.0;
+    float ratio = 1.0F;
 
     ripser<sparse_distance_matrix> r(
-        sparse_distance_matrix(dist, thresh), max_dim, thresh, ratio, modulus);
+        sparse_distance_matrix(dist, thresh), 2, thresh, ratio, modulus, num_threads);
     r.compute_barcodes();
 
     PersistenceResult result;
@@ -60,7 +58,7 @@ compute_persistence_from_distances(const Eigen::MatrixXd& distance_matrix,
 }
 
 PersistenceResult
-compute_persistence(const Eigen::MatrixXd& point_cloud, double threshold, int max_dim) {
+compute_persistence(const Eigen::MatrixXd& point_cloud, double threshold, unsigned num_threads) {
     const auto N = point_cloud.rows();
 
     Eigen::VectorXd sq_norms = point_cloud.rowwise().squaredNorm();
@@ -68,7 +66,7 @@ compute_persistence(const Eigen::MatrixXd& point_cloud, double threshold, int ma
                               2.0 * point_cloud * point_cloud.transpose();
     Eigen::MatrixXd dist = sq_dist.cwiseMax(0.0).cwiseSqrt();
 
-    return compute_persistence_from_distances(dist, max_dim, threshold);
+    return compute_persistence_from_distances(dist, threshold, num_threads);
 }
 
 }  // namespace defect_gnn::topology
